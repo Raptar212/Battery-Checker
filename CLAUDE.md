@@ -47,12 +47,15 @@ installer\build.ps1              # установщик → artifacts\BatteryChe
 | Устройство | Подключение | Источник |
 |---|---|---|
 | Logitech G602 | USB-приёмник `046D:C537` | HID++ 2.0, `0x1000` BATTERY_STATUS (ступени 100/50/20/5) |
+| Logitech G502 X Plus | Lightspeed `046D:C547` | HID++ 2.0 |
 | Astro A50 Gen4 | USB-база `9886:002C` | вендорный HID `0xFF32` |
 | DualSense | USB / Bluetooth `054C:0CE6` | входные отчёты, пассивно |
-| Наушники Bluetooth Classic | Hands-Free | `{104EA319-6EE2-4701-BD47-8DDBF425BBE5} 2` на узле «Hands-Free AG» |
+| Наушники Bluetooth Classic (в т.ч. Gtheos Captain 300) | Hands-Free | `{104EA319-6EE2-4701-BD47-8DDBF425BBE5} 2` на узле «Hands-Free AG» |
 | Keychron Q6 Max | Bluetooth LE (`3434:0860`) | то же свойство на узле `BTHLE\Dev_<адрес>`; Appearance 15/1 |
 
-Не поддерживается: Keychron через приёмник Link `3434:D030` (заряд не отдаёт, см. `docs/PROTOCOLS.md`).
+Полный список для пользователей — `docs/DEVICES.md` (в README только ссылка).
+Не поддерживается (заряд не отдают, см. `docs/PROTOCOLS.md`): Keychron через приёмник Link `3434:D030`,
+наушники Gtheos Captain 300 (донгл 2.4 ГГц `4C4A:4155`).
 
 ## Протоколы и грабли
 
