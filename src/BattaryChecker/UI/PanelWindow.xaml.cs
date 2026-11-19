@@ -18,6 +18,7 @@ public partial class PanelWindow : Window
     public PanelWindow()
     {
         InitializeComponent();
+        SizeChanged += OnSizeChanged;
         TitleText.Text = Text.AppName;
         ConnectedHeader.Text = Text.ConnectedHeader;
         NoDevicesTitle.Text = Text.NoDevices;
@@ -53,8 +54,26 @@ public partial class PanelWindow : Window
     /// <summary>Shows above the widget, centred on it, on the widget's monitor; else at the bottom-right of the primary one.</summary>
     public void ShowNear(Window? anchor)
     {
+        _anchor = anchor;
         Show();
         UpdateLayout();
+        Place();
+        Activate();
+    }
+
+    Window? _anchor;
+
+    // SizeToContent grows and shrinks the panel downwards from its top edge; re-anchor it to the widget instead
+    // (expanding the disconnected list, devices appearing while it is open).
+    void OnSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (IsVisible && e.HeightChanged)
+            Place();
+    }
+
+    void Place()
+    {
+        var anchor = _anchor;
         var area = anchor is null ? SystemParameters.WorkArea : ScreenArea.Of(anchor);
         if (anchor is null)
         {
@@ -69,7 +88,6 @@ public partial class PanelWindow : Window
             if (Top < area.Top)
                 Top = anchor.Top + anchor.ActualHeight + Gap; // widget near the top edge: open below
         }
-        Activate();
     }
 
     void RenderDisconnectedToggle()
