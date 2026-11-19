@@ -8,20 +8,7 @@ click, and a tray icon. Including devices whose battery Windows itself does not 
 
 ## Supported devices
 
-| Device | Connection | Status |
-|---|---|---|
-| Any Bluetooth device whose battery Windows already reads (headsets and earbuds over Hands-Free, BLE keyboards and mice) | Bluetooth Classic / LE | ✅ works |
-| Logitech G602 | USB receiver `046D:C537` | ✅ tested (the mouse only reports 100 / 50 / 20 / 5 %) |
-| Other Logitech HID++ 2.0 devices | Lightspeed / Unifying / Bolt receiver | ⚠️ should work, not tested |
-| Astro A50 Gen4 | USB base station `9886:002C` | ✅ tested |
-| Sony DualSense | USB | ✅ tested |
-| Sony DualSense | Bluetooth | ✅ tested, after the checkbox in Settings (see the warning there) |
-| Keychron Q6 Max | Bluetooth LE | ✅ tested |
-| Keychron keyboards through the Keychron Link receiver | 2.4 GHz | ❌ the receiver does not report battery |
-| Older Astro A50, DualSense Edge, DualShock 4, Logitech HID++ 1.0 | — | ❌ not supported |
-
-Your device works with another setup? Something is missing? [Open an issue](https://github.com/Raptar212/Battery-Checker/issues)
-with the device model and how it is connected.
+Tested devices and connections — [docs/DEVICES.md](docs/DEVICES.md).
 
 ## Install
 
@@ -84,20 +71,7 @@ How each device is read is documented in [docs/PROTOCOLS.md](docs/PROTOCOLS.md).
 
 ### Какие устройства поддерживаются
 
-| Устройство | Подключение | Статус |
-|---|---|---|
-| Любое Bluetooth-устройство, у которого Windows сама видит заряд (гарнитуры и наушники через Hands-Free, BLE-клавиатуры и мыши) | Bluetooth Classic / LE | ✅ работает |
-| Logitech G602 | USB-приёмник `046D:C537` | ✅ проверено (мышь отдаёт только 100 / 50 / 20 / 5 %) |
-| Другие устройства Logitech HID++ 2.0 | приёмник Lightspeed / Unifying / Bolt | ⚠️ должно работать, не проверено |
-| Astro A50 Gen4 | USB-база `9886:002C` | ✅ проверено |
-| Sony DualSense | USB | ✅ проверено |
-| Sony DualSense | Bluetooth | ✅ проверено, после галочки в настройках (см. предупреждение там) |
-| Keychron Q6 Max | Bluetooth LE | ✅ проверено |
-| Клавиатуры Keychron через приёмник Keychron Link | 2,4 ГГц | ❌ приёмник не отдаёт заряд |
-| Старые Astro A50, DualSense Edge, DualShock 4, Logitech HID++ 1.0 | — | ❌ не поддерживаются |
-
-Ваше устройство работает в другой связке или его нет в списке? [Создайте issue](https://github.com/Raptar212/Battery-Checker/issues)
-с моделью устройства и способом подключения.
+Проверенные устройства и способы подключения — [docs/DEVICES.md](docs/DEVICES.md).
 
 ### Установка
 
