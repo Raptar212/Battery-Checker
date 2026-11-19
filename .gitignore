@@ -1,0 +1,19 @@
+bin/
+obj/
+.venv/
+__pycache__/
+*.pyc
+.idea/
+.omc/
+dist/
+artifacts/
+.pytest_cache/
+graphify-out/
+# Local agent setup, never published
+.claude/
+AGENTS.md
+CLAUDE.local.md
+# Old development history (git bundle), kept locally
+*.bundle
+# Old development history, kept locally
+.git-dev-old/

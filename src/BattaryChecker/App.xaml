@@ -1,0 +1,64 @@
+﻿<Application x:Class="BattaryChecker.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="clr-namespace:BattaryChecker.UI"
+             ShutdownMode="OnExplicitShutdown">
+  <Application.Resources>
+    <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
+    <SolidColorBrush x:Key="AccentBrush" Color="#EF4444" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#F21C1C21" />
+    <SolidColorBrush x:Key="CardBrush" Color="#FF26262C" />
+    <SolidColorBrush x:Key="FrameBrush" Color="#FF3F3F46" />
+    <SolidColorBrush x:Key="TextBrush" Color="#FFF4F4F5" />
+    <SolidColorBrush x:Key="MutedBrush" Color="#FF9CA3AF" />
+    <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+    <!-- Battery outline with a fill sized and coloured by the level; bolt while charging. -->
+    <DataTemplate x:Key="Battery" DataType="{x:Type ui:DeviceView}">
+      <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+        <Border Width="20" Height="11" Padding="1" CornerRadius="2.5"
+                BorderBrush="{StaticResource MutedBrush}" BorderThickness="1.2">
+          <Border HorizontalAlignment="Left" CornerRadius="1"
+                  Width="{Binding FillWidth}" Background="{Binding LevelBrush}" />
+        </Border>
+        <Border Width="2" Height="5" CornerRadius="0,1,1,0" Background="{StaticResource MutedBrush}" />
+        <TextBlock Text="&#xE945;" FontFamily="{StaticResource IconFont}" FontSize="11" Margin="2,0,0,0"
+                   VerticalAlignment="Center" Foreground="{Binding LevelBrush}"
+                   Visibility="{Binding Charging, Converter={StaticResource BoolToVis}}" />
+      </StackPanel>
+    </DataTemplate>
+
+    <!-- Flat icon button for the panel header and cards. -->
+    <Style x:Key="IconButton" TargetType="Button">
+      <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Width="30" Height="30">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Bg" Property="Background" Value="#22FFFFFF" />
+                <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+              </Trigger>
+              <!-- Tab focus must be visible: the template has no default focus rectangle. -->
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="Bg" Property="Background" Value="#22FFFFFF" />
+                <Setter TargetName="Bg" Property="BorderBrush" Value="{StaticResource MutedBrush}" />
+                <Setter TargetName="Bg" Property="BorderThickness" Value="1" />
+                <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Bg" Property="Background" Value="#33FFFFFF" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Application.Resources>
+</Application>
