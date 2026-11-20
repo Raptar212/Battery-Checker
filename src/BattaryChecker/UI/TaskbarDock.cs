@@ -78,6 +78,18 @@ public sealed class TaskbarDock
         }
     }
 
+    /// <summary>
+    /// For a floating widget: the same z-order check without docking (cheap, no cross-process
+    /// message). Only the order relative to the taskbar changes, never the position.
+    /// </summary>
+    public void KeepAbove(nint window)
+    {
+        // Only the taskbar itself is needed: Windows 11's has no rebar or task list to dock into.
+        Find();
+        if (IsWindow(_taskbar))
+            KeepAboveTaskbar(window);
+    }
+
     /// <summary>Gives the slot back to the task buttons and restores the window's own owner.</summary>
     public void Release(nint window)
     {

@@ -7,6 +7,8 @@ public enum TrayStyle { Bars, Ring, Number }
 
 public enum ThemeMode { System, Dark, Light }
 
+public enum WidgetStyle { Horizontal, Vertical, Compact, Tiles, Named }
+
 /// <summary>User settings, stored as JSON in %LOCALAPPDATA%\BattaryChecker\config.json.</summary>
 public sealed class AppConfig
 {
@@ -25,6 +27,12 @@ public sealed class AppConfig
 
     /// <summary>Interface theme; System follows the Windows apps theme.</summary>
     public ThemeMode Theme { get; set; } = ThemeMode.System;
+
+    /// <summary>Look of the floating widget.</summary>
+    public WidgetStyle WidgetStyle { get; set; } = WidgetStyle.Horizontal;
+
+    /// <summary>Look of the widget pinned into the taskbar: only Horizontal and Compact fit its height.</summary>
+    public WidgetStyle PinnedWidgetStyle { get; set; } = WidgetStyle.Horizontal;
 
     /// <summary>Devices the tray icon shows; empty = every connected device.</summary>
     public List<string> TrayDevices { get; set; } = [];
@@ -72,6 +80,10 @@ public sealed class AppConfig
             TrayStyle = TrayStyle.Bars;
         if (!Enum.IsDefined(Theme))
             Theme = ThemeMode.System;
+        if (!Enum.IsDefined(WidgetStyle))
+            WidgetStyle = WidgetStyle.Horizontal;
+        if (PinnedWidgetStyle is not (WidgetStyle.Horizontal or WidgetStyle.Compact))
+            PinnedWidgetStyle = WidgetStyle.Horizontal;
     }
 
     /// <summary>The name to show for a device: the user's alias if set, else its own.</summary>

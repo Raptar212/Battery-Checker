@@ -10,6 +10,7 @@ public static class Theme
     static readonly Dictionary<string, Color> Dark = new()
     {
         ["SurfaceBrush"] = Color.FromArgb(0xF2, 0x1C, 0x1C, 0x21),
+        ["SurfaceSolidBrush"] = Color.FromArgb(0xFF, 0x1C, 0x1C, 0x21), // a card over other content: nothing shows through
         ["CardBrush"] = Color.FromArgb(0xFF, 0x26, 0x26, 0x2C),
         ["FrameBrush"] = Color.FromArgb(0xFF, 0x3F, 0x3F, 0x46),
         ["TextBrush"] = Color.FromArgb(0xFF, 0xF4, 0xF4, 0xF5),
@@ -23,6 +24,7 @@ public static class Theme
     static readonly Dictionary<string, Color> Light = new()
     {
         ["SurfaceBrush"] = Color.FromArgb(0xF2, 0xF3, 0xF4, 0xF6),
+        ["SurfaceSolidBrush"] = Color.FromArgb(0xFF, 0xF3, 0xF4, 0xF6),
         ["CardBrush"] = Color.FromArgb(0xFF, 0xFF, 0xFF, 0xFF),
         ["FrameBrush"] = Color.FromArgb(0xFF, 0xD1, 0xD5, 0xDB),
         ["TextBrush"] = Color.FromArgb(0xFF, 0x11, 0x18, 0x27),

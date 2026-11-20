@@ -20,6 +20,22 @@ public static class Levels
         _ => Color.FromRgb(0x6B, 0x72, 0x80),
     };
 
+    /// <summary>
+    /// Dash pattern of the tile ring's level arc, in stroke-thickness units. The stroke is
+    /// centred on a circle of circumference pi*(D-T); round caps add T/2 at each end, so the
+    /// dash is shortened by one thickness. Null = no arc (0 % or unknown); gap 0 = full ring.
+    /// </summary>
+    public static (double Dash, double Gap)? RingDash(int? percent, double diameter, double thickness)
+    {
+        if (percent is not > 0)
+            return null;
+        var circumference = Math.PI * (diameter - thickness) / thickness;
+        if (percent >= 100)
+            return (circumference, 0);
+        var dash = Math.Max(0, circumference * percent.Value / 100.0 - 1);
+        return (dash, circumference - dash);
+    }
+
     /// <summary>Connected devices first, then by name.</summary>
     public static IEnumerable<BatteryReading> Ordered(IEnumerable<BatteryReading> readings) =>
         readings.OrderByDescending(r => r.Connected).ThenBy(r => r.Name, StringComparer.CurrentCultureIgnoreCase);
@@ -49,6 +65,22 @@ public sealed class DeviceView(BatteryReading reading, bool hidden, int low, int
     public bool Charging => Reading.Connected && Reading.Charging;
     public Level Level => Reading.Connected ? Levels.Of(Reading.Percent, low, medium) : Level.Unknown;
     public Brush LevelBrush => Freeze(new SolidColorBrush(Levels.ColorOf(Level)));
+    public const double RingDiameter = 40, RingThickness = 4; // WidgetWindow.xaml tile ring
+
+    public bool RingVisible => Reading.Percent is > 0;
+
+    /// <summary>Empty = solid ring (full).</summary>
+    public DoubleCollection RingDashArray
+    {
+        get
+        {
+            var ring = Levels.RingDash(Reading.Percent, RingDiameter, RingThickness);
+            var dashes = ring is { Gap: > 0 } r ? new DoubleCollection { r.Dash, r.Gap } : [];
+            dashes.Freeze();
+            return dashes;
+        }
+    }
+
     public string PercentText => Reading.Percent is { } p ? $"{p}%" : "—";
     public double FillWidth => Reading.Percent is { } p ? Math.Max(1.5, BatteryInnerWidth * Math.Clamp(p, 0, 100) / 100.0) : 0;
     public double Opacity => Reading.Connected ? 1 : 0.55;

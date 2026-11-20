@@ -5,33 +5,106 @@
         Title="Battery Checker" WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True" ShowInTaskbar="False" ShowActivated="False" ResizeMode="NoResize"
         SizeToContent="WidthAndHeight">
+  <Window.Resources>
+    <ItemsPanelTemplate x:Key="RowPanel">
+      <StackPanel Orientation="Horizontal" />
+    </ItemsPanelTemplate>
+    <ItemsPanelTemplate x:Key="ColumnPanel">
+      <StackPanel Orientation="Vertical" />
+    </ItemsPanelTemplate>
+
+    <!-- Horizontal: separator, glyph, battery, percent. -->
+    <DataTemplate x:Key="HorizontalItem" DataType="{x:Type ui:WidgetItem}">
+      <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+        <Border Width="1" Height="18" Margin="10,0" Background="{DynamicResource MutedBrush}" Opacity="0.6"
+                Visibility="{Binding Separator, Converter={StaticResource BoolToVis}}" />
+        <TextBlock Text="{Binding View.Glyph}" FontFamily="{StaticResource IconFont}" FontSize="14"
+                   Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
+        <ContentControl Content="{Binding View}" ContentTemplate="{StaticResource Battery}" Margin="8,0,6,0" />
+        <TextBlock Text="{Binding View.PercentText}" Foreground="{DynamicResource TextBrush}" FontSize="12"
+                   VerticalAlignment="Center" />
+      </StackPanel>
+    </DataTemplate>
+
+    <!-- Vertical: the same items, one per row. -->
+    <DataTemplate x:Key="VerticalItem" DataType="{x:Type ui:WidgetItem}">
+      <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,3">
+        <TextBlock Text="{Binding View.Glyph}" FontFamily="{StaticResource IconFont}" FontSize="14"
+                   Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
+        <ContentControl Content="{Binding View}" ContentTemplate="{StaticResource Battery}" Margin="8,0,6,0" />
+        <TextBlock Text="{Binding View.PercentText}" Foreground="{DynamicResource TextBrush}" FontSize="12"
+                   VerticalAlignment="Center" />
+      </StackPanel>
+    </DataTemplate>
+
+    <!-- Compact: glyph and percent in the level colour, no battery outline. -->
+    <DataTemplate x:Key="CompactItem" DataType="{x:Type ui:WidgetItem}">
+      <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+        <Border Width="1" Height="18" Margin="10,0" Background="{DynamicResource MutedBrush}" Opacity="0.6"
+                Visibility="{Binding Separator, Converter={StaticResource BoolToVis}}" />
+        <TextBlock Text="{Binding View.Glyph}" FontFamily="{StaticResource IconFont}" FontSize="14"
+                   Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
+        <TextBlock Text="{Binding View.PercentText}" Foreground="{Binding View.LevelBrush}" FontSize="12"
+                   FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center" />
+        <TextBlock Text="&#xE945;" FontFamily="{StaticResource IconFont}" FontSize="10" Margin="1,0,0,0"
+                   VerticalAlignment="Center" Foreground="{Binding View.LevelBrush}"
+                   Visibility="{Binding View.Charging, Converter={StaticResource BoolToVis}}" />
+      </StackPanel>
+    </DataTemplate>
+
+    <!-- Tiles: level ring around the device glyph, percent underneath. -->
+    <DataTemplate x:Key="TilesItem" DataType="{x:Type ui:WidgetItem}">
+      <StackPanel Width="56" Margin="2" HorizontalAlignment="Center">
+        <Grid Width="40" Height="40">
+          <Ellipse Stroke="{DynamicResource MutedBrush}" StrokeThickness="4" Opacity="0.3" />
+          <Ellipse Stroke="{Binding View.LevelBrush}" StrokeThickness="4"
+                   StrokeDashArray="{Binding View.RingDashArray}" StrokeDashCap="Round"
+                   StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                   RenderTransformOrigin="0.5,0.5"
+                   Visibility="{Binding View.RingVisible, Converter={StaticResource BoolToVis}}">
+            <Ellipse.RenderTransform>
+              <RotateTransform Angle="-90" />
+            </Ellipse.RenderTransform>
+          </Ellipse>
+          <TextBlock Text="{Binding View.Glyph}" FontFamily="{StaticResource IconFont}" FontSize="16"
+                     Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+          <TextBlock Text="&#xE945;" FontFamily="{StaticResource IconFont}" FontSize="10" Margin="0,0,-4,-2"
+                     HorizontalAlignment="Right" VerticalAlignment="Bottom" Foreground="{Binding View.LevelBrush}"
+                     Visibility="{Binding View.Charging, Converter={StaticResource BoolToVis}}" />
+        </Grid>
+        <TextBlock HorizontalAlignment="Center" Margin="0,2,0,0" FontSize="11" Foreground="{DynamicResource MutedBrush}"
+                   Text="{Binding View.PercentText}" />
+      </StackPanel>
+    </DataTemplate>
+
+    <!-- Named: glyph, name, battery, percent per row. -->
+    <DataTemplate x:Key="NamedItem" DataType="{x:Type ui:WidgetItem}">
+      <Grid VerticalAlignment="Center" Margin="0,3">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" SharedSizeGroup="Glyph" />
+          <ColumnDefinition Width="Auto" SharedSizeGroup="Name" />
+          <ColumnDefinition Width="Auto" SharedSizeGroup="Battery" />
+          <ColumnDefinition Width="Auto" SharedSizeGroup="Percent" />
+        </Grid.ColumnDefinitions>
+        <TextBlock Text="{Binding View.Glyph}" FontFamily="{StaticResource IconFont}" FontSize="14"
+                   Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="1" Text="{Binding View.Name}" Foreground="{DynamicResource TextBrush}" FontSize="12"
+                   MaxWidth="140" TextTrimming="CharacterEllipsis" Margin="8,0,0,0" VerticalAlignment="Center" />
+        <ContentControl Grid.Column="2" Content="{Binding View}" ContentTemplate="{StaticResource Battery}"
+                        Margin="8,0,6,0" HorizontalAlignment="Left" />
+        <TextBlock Grid.Column="3" Text="{Binding View.PercentText}" Foreground="{DynamicResource TextBrush}" FontSize="12"
+                   HorizontalAlignment="Right" VerticalAlignment="Center" />
+      </Grid>
+    </DataTemplate>
+  </Window.Resources>
   <Border x:Name="Frame" CornerRadius="8" Padding="10,6" MinHeight="30" Cursor="Hand"
           Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource FrameBrush}" BorderThickness="1.5"
           MouseLeftButtonDown="OnMouseDown">
     <Grid VerticalAlignment="Center">
       <TextBlock x:Name="Empty" Text="—" Foreground="{DynamicResource MutedBrush}" FontSize="12"
                  ToolTip="{x:Static ui:Text.NoDevices}" />
-      <StackPanel Orientation="Horizontal">
-      <ItemsControl x:Name="Items">
-        <ItemsControl.ItemsPanel>
-          <ItemsPanelTemplate>
-            <StackPanel Orientation="Horizontal" />
-          </ItemsPanelTemplate>
-        </ItemsControl.ItemsPanel>
-        <ItemsControl.ItemTemplate>
-          <DataTemplate DataType="{x:Type ui:WidgetItem}">
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-              <Border Width="1" Height="18" Margin="10,0" Background="{DynamicResource MutedBrush}" Opacity="0.6"
-                      Visibility="{Binding Separator, Converter={StaticResource BoolToVis}}" />
-              <TextBlock Text="{Binding View.Glyph}" FontFamily="{StaticResource IconFont}" FontSize="14"
-                         Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
-              <ContentControl Content="{Binding View}" ContentTemplate="{StaticResource Battery}" Margin="8,0,6,0" />
-              <TextBlock Text="{Binding View.PercentText}" Foreground="{DynamicResource TextBrush}" FontSize="12"
-                         VerticalAlignment="Center" />
-            </StackPanel>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
+      <StackPanel x:Name="Stack" Orientation="Horizontal">
+      <ItemsControl x:Name="Items" Grid.IsSharedSizeScope="True" />
       <!-- More connected devices than fit: say so instead of dropping them silently. -->
       <TextBlock x:Name="More" Foreground="{DynamicResource MutedBrush}" FontSize="12" Margin="10,0,0,0"
                  VerticalAlignment="Center" Visibility="Collapsed" />

@@ -14,15 +14,13 @@ public sealed class DeviceSetting
 }
 
 public sealed record SettingsResult(int Low, int Medium, int Critical, bool Autostart, bool Notifications,
-    bool Blink, bool DualSenseFullReports, TrayStyle TrayStyle, ThemeMode Theme, bool CheckUpdates, IReadOnlyList<DeviceSetting> Devices);
+    bool Blink, bool DualSenseFullReports, TrayStyle TrayStyle, ThemeMode Theme, WidgetStyle WidgetStyle, WidgetStyle PinnedWidgetStyle, bool CheckUpdates, IReadOnlyList<DeviceSetting> Devices);
 
 /// <summary>The only settings window: thresholds, tray icon, autostart, device names and widget visibility.</summary>
 public partial class SettingsWindow : Window
 {
     readonly AppConfig _config;
     readonly List<DeviceSetting> _devices;
-    readonly System.Windows.Controls.RadioButton[] _styles;
-    readonly System.Windows.Controls.RadioButton[] _themes;
 
     public event Action<SettingsResult>? Saved;
 
@@ -41,25 +39,25 @@ public partial class SettingsWindow : Window
         DualSenseHint.Text = Text.DualSenseFullReportsHint; // a warning, not a tooltip: keyboard and Narrator users see it too
         DualSenseBox.IsChecked = config.DualSenseFullReports;
         TrayHeader.Text = Text.TrayStyleLabel.ToUpperInvariant();
-        _styles = [BarsRadio, RingRadio, NumberRadio]; // order of TrayStyle
-        for (var i = 0; i < _styles.Length; i++)
-        {
-            _styles[i].Content = Text.TrayStyles[i];
-            _styles[i].IsChecked = (int)config.TrayStyle == i;
-        }
+        TrayCombo.ItemsSource = Text.TrayStyles; // order of TrayStyle
+        TrayCombo.SelectedIndex = (int)config.TrayStyle;
         ThemeHeader.Text = Text.ThemeLabel.ToUpperInvariant();
-        _themes = [SystemThemeRadio, DarkThemeRadio, LightThemeRadio]; // order of ThemeMode
-        for (var i = 0; i < _themes.Length; i++)
-        {
-            _themes[i].Content = Text.Themes[i];
-            _themes[i].IsChecked = (int)config.Theme == i;
-        }
+        ThemeCombo.ItemsSource = Text.Themes; // order of ThemeMode
+        ThemeCombo.SelectedIndex = (int)config.Theme;
+        FloatingHeader.Text = Text.FloatingWidgetLabel.ToUpperInvariant();
+        FloatingCombo.ItemsSource = Text.WidgetStyles; // order of WidgetStyle
+        FloatingCombo.SelectedIndex = (int)config.WidgetStyle;
+        PinnedHeader.Text = Text.TaskbarWidgetLabel.ToUpperInvariant();
+        PinnedCombo.ItemsSource = new[] { Text.WidgetStyles[(int)WidgetStyle.Horizontal], Text.WidgetStyles[(int)WidgetStyle.Compact] };
+        PinnedCombo.SelectedIndex = config.PinnedWidgetStyle == WidgetStyle.Compact ? 1 : 0;
         AutostartBox.Content = Text.StartWithWindows;
         NotificationsBox.Content = Text.Notifications;
         NotificationsBox.IsChecked = config.Notifications;
         UpdatesBox.Content = Text.CheckUpdatesOnStart;
         UpdatesBox.IsChecked = config.CheckUpdates;
-        DevicesHeader.Text = Text.Devices;
+        OverlayTitle.Text = Text.Devices;
+        DeviceColumn.Text = Text.DeviceColumn.ToUpperInvariant();
+        OnWidgetColumn.Text = Text.OnWidget.ToUpperInvariant();
         SaveButton.Content = Text.Save;
         CancelButton.Content = Text.Cancel;
 
@@ -75,6 +73,8 @@ public partial class SettingsWindow : Window
             OnWidget = !config.HiddenDevices.Contains(d.Id),
         }).ToList();
         DeviceList.ItemsSource = _devices;
+        DevicesButton.Content = Text.DevicesButton(_devices.Count);
+        DevicesButton.IsEnabled = _devices.Count > 0;
     }
 
     void OnSave(object sender, RoutedEventArgs e)
@@ -85,12 +85,45 @@ public partial class SettingsWindow : Window
         var critical = int.TryParse(CriticalBox.Text.Trim(), out var c) ? c : _config.CriticalThreshold;
         (low, medium) = AppConfig.ClampThresholds(low, medium);
         critical = AppConfig.ClampCritical(critical, low);
-        var style = (TrayStyle)Math.Max(0, Array.FindIndex(_styles, r => r.IsChecked == true));
-        var theme = (ThemeMode)Math.Max(0, Array.FindIndex(_themes, r => r.IsChecked == true));
+        var style = (TrayStyle)Math.Max(0, TrayCombo.SelectedIndex);
+        var theme = (ThemeMode)Math.Max(0, ThemeCombo.SelectedIndex);
+        var widgetStyle = (WidgetStyle)Math.Max(0, FloatingCombo.SelectedIndex);
+        var pinnedStyle = PinnedCombo.SelectedIndex == 1 ? WidgetStyle.Compact : WidgetStyle.Horizontal;
         Saved?.Invoke(new SettingsResult(low, medium, critical, AutostartBox.IsChecked == true,
             NotificationsBox.IsChecked == true, BlinkBox.IsChecked == true, DualSenseBox.IsChecked == true,
-            style, theme, UpdatesBox.IsChecked == true, _devices));
+            style, theme, widgetStyle, pinnedStyle, UpdatesBox.IsChecked == true, _devices));
         Close();
+    }
+
+    void OnOpenDevices(object sender, RoutedEventArgs e)
+    {
+        // The window must not grow for the card: the list scrolls within what is left.
+        DeviceScroll.MaxHeight = Math.Max(120, Main.ActualHeight - 150);
+        Main.IsEnabled = false; // keeps Tab and clicks out of the dimmed settings
+        Overlay.Visibility = Visibility.Visible;
+        OverlayClose.Focus();
+    }
+
+    void OnCloseDevices(object? sender, RoutedEventArgs? e)
+    {
+        Overlay.Visibility = Visibility.Collapsed;
+        Main.IsEnabled = true;
+        DevicesButton.Focus();
+    }
+
+    void OnOverlayClick(object sender, MouseButtonEventArgs e)
+    {
+        if (e.OriginalSource == Overlay)
+            OnCloseDevices(null, null);
+    }
+
+    /// <summary>Esc closes the device card first; the Cancel button's IsCancel would close the window.</summary>
+    void OnPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape || Overlay.Visibility != Visibility.Visible)
+            return;
+        e.Handled = true;
+        OnCloseDevices(null, null);
     }
 
     void OnCancel(object sender, RoutedEventArgs e) => Close();

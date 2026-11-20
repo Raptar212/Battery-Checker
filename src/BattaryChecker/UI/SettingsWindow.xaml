@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="clr-namespace:BattaryChecker.UI"
         Title="Battery Checker" WindowStyle="None" AllowsTransparency="True" Background="Transparent"
-        ResizeMode="NoResize" Width="440" SizeToContent="Height" WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize" Width="440" PreviewKeyDown="OnPreviewKeyDown" SizeToContent="Height" WindowStartupLocation="CenterScreen"
         Topmost="True" ShowInTaskbar="True">
   <Window.Resources>
     <Style TargetType="TextBox">
@@ -25,11 +25,110 @@
       <Setter Property="VerticalContentAlignment" Value="Center" />
       <Setter Property="Margin" Value="0,0,16,0" />
     </Style>
+    <Style TargetType="ComboBoxItem">
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ComboBoxItem">
+            <Border x:Name="Bg" Background="Transparent" CornerRadius="4" Padding="8,5">
+              <ContentPresenter />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsHighlighted" Value="True">
+                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource HoverBrush}" />
+              </Trigger>
+              <Trigger Property="IsSelected" Value="True">
+                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style TargetType="ComboBox">
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ComboBox">
+            <Grid>
+              <Border x:Name="Bd" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource FrameBrush}"
+                      BorderThickness="1" CornerRadius="6" />
+              <ContentPresenter Margin="10,6,28,6" VerticalAlignment="Center" HorizontalAlignment="Left"
+                                Content="{TemplateBinding SelectionBoxItem}" IsHitTestVisible="False" />
+              <TextBlock Text="&#xE70D;" FontFamily="{StaticResource IconFont}" FontSize="10" Margin="0,0,10,0"
+                         Foreground="{DynamicResource MutedBrush}" HorizontalAlignment="Right"
+                         VerticalAlignment="Center" IsHitTestVisible="False" />
+              <ToggleButton Focusable="False" ClickMode="Press" Background="Transparent"
+                            IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                <ToggleButton.Template>
+                  <ControlTemplate TargetType="ToggleButton">
+                    <Border Background="Transparent" />
+                  </ControlTemplate>
+                </ToggleButton.Template>
+              </ToggleButton>
+              <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" AllowsTransparency="True"
+                     Focusable="False" PopupAnimation="None">
+                <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource FrameBrush}"
+                        BorderThickness="1" CornerRadius="6" Padding="3" Margin="0,2,0,0"
+                        MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
+                  <ItemsPresenter />
+                </Border>
+              </Popup>
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource MutedBrush}" />
+              </Trigger>
+              <!-- Tab focus must be visible: the template has no default focus rectangle. -->
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+              </Trigger>
+              <Trigger Property="IsDropDownOpen" Value="True">
+                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource MutedBrush}" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
     <Style x:Key="Header" TargetType="TextBlock">
       <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
       <Setter Property="FontSize" Value="11" />
       <Setter Property="FontWeight" Value="SemiBold" />
       <Setter Property="Margin" Value="2,14,0,8" />
+    </Style>
+    <Style x:Key="RowButton" TargetType="Button">
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Grid>
+              <Border x:Name="Bd" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource FrameBrush}"
+                      BorderThickness="1" CornerRadius="6" />
+              <ContentPresenter Margin="10,7,28,7" HorizontalAlignment="Left" VerticalAlignment="Center" />
+              <TextBlock Text="&#xE76C;" FontFamily="{StaticResource IconFont}" FontSize="10" Margin="0,0,10,0"
+                         Foreground="{DynamicResource MutedBrush}" HorizontalAlignment="Right"
+                         VerticalAlignment="Center" />
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource MutedBrush}" />
+              </Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.5" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
     </Style>
     <Style x:Key="ActionButton" TargetType="Button">
       <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
@@ -52,7 +151,8 @@
     </Style>
   </Window.Resources>
 
-  <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="10" Padding="16,14"
+  <Grid>
+  <Border x:Name="Main" Background="{DynamicResource SurfaceBrush}" CornerRadius="10" Padding="16,14"
           BorderBrush="{DynamicResource FrameBrush}" BorderThickness="1">
     <StackPanel>
       <Grid Background="Transparent" MouseLeftButtonDown="OnHeaderDrag">
@@ -102,53 +202,38 @@
                  TextWrapping="Wrap" />
       <CheckBox x:Name="UpdatesBox" Margin="0,8,0,0" />
 
-      <TextBlock x:Name="TrayHeader" Style="{StaticResource Header}" />
-      <StackPanel Orientation="Horizontal">
-        <RadioButton x:Name="BarsRadio" GroupName="Tray" />
-        <RadioButton x:Name="RingRadio" GroupName="Tray" />
-        <RadioButton x:Name="NumberRadio" GroupName="Tray" />
-      </StackPanel>
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="12" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <StackPanel>
+          <TextBlock x:Name="TrayHeader" Style="{StaticResource Header}" />
+          <ComboBox x:Name="TrayCombo" AutomationProperties.LabeledBy="{Binding ElementName=TrayHeader}" />
+        </StackPanel>
+        <StackPanel Grid.Column="2">
+          <TextBlock x:Name="ThemeHeader" Style="{StaticResource Header}" />
+          <ComboBox x:Name="ThemeCombo" AutomationProperties.LabeledBy="{Binding ElementName=ThemeHeader}" />
+        </StackPanel>
+      </Grid>
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="12" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <StackPanel>
+          <TextBlock x:Name="FloatingHeader" Style="{StaticResource Header}" />
+          <ComboBox x:Name="FloatingCombo" AutomationProperties.LabeledBy="{Binding ElementName=FloatingHeader}" />
+        </StackPanel>
+        <StackPanel Grid.Column="2">
+          <TextBlock x:Name="PinnedHeader" Style="{StaticResource Header}" />
+          <ComboBox x:Name="PinnedCombo" AutomationProperties.LabeledBy="{Binding ElementName=PinnedHeader}" />
+        </StackPanel>
+      </Grid>
 
-      <TextBlock x:Name="ThemeHeader" Style="{StaticResource Header}" />
-      <StackPanel Orientation="Horizontal">
-        <RadioButton x:Name="SystemThemeRadio" GroupName="Theme" />
-        <RadioButton x:Name="DarkThemeRadio" GroupName="Theme" />
-        <RadioButton x:Name="LightThemeRadio" GroupName="Theme" />
-      </StackPanel>
-
-      <TextBlock x:Name="DevicesHeader" Style="{StaticResource Header}" />
-      <ItemsControl x:Name="DeviceList">
-        <ItemsControl.ItemTemplate>
-          <DataTemplate DataType="{x:Type ui:DeviceSetting}">
-            <Grid Margin="0,0,0,8">
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-              </Grid.ColumnDefinitions>
-              <Grid>
-                <TextBox x:Name="NameBox" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
-                         ToolTip="{Binding OwnName}" />
-                <!-- Placeholder: the device's own name, shown while no alias is typed. -->
-                <TextBlock Text="{Binding OwnName}" Foreground="{DynamicResource MutedBrush}" FontSize="13"
-                           Margin="9,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
-                  <TextBlock.Style>
-                    <Style TargetType="TextBlock">
-                      <Setter Property="Visibility" Value="Collapsed" />
-                      <Style.Triggers>
-                        <DataTrigger Binding="{Binding Text, ElementName=NameBox}" Value="">
-                          <Setter Property="Visibility" Value="Visible" />
-                        </DataTrigger>
-                      </Style.Triggers>
-                    </Style>
-                  </TextBlock.Style>
-                </TextBlock>
-              </Grid>
-              <CheckBox Grid.Column="1" Margin="12,0,0,0" IsChecked="{Binding OnWidget}"
-                        Content="{x:Static ui:Text.OnWidget}" />
-            </Grid>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
+      <Button x:Name="DevicesButton" Style="{StaticResource RowButton}" Margin="0,14,0,0" Click="OnOpenDevices" />
 
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
         <Button x:Name="CancelButton" Style="{StaticResource ActionButton}" Background="{DynamicResource CardBrush}"
@@ -158,4 +243,68 @@
       </StackPanel>
     </StackPanel>
   </Border>
+
+  <!-- Devices: a card over the whole window; a click on the dimmed area closes it. -->
+  <Border x:Name="Overlay" Background="#60000000" CornerRadius="10" Visibility="Collapsed"
+          MouseLeftButtonDown="OnOverlayClick">
+    <Border Background="{DynamicResource SurfaceSolidBrush}" BorderBrush="{DynamicResource FrameBrush}" BorderThickness="1"
+            CornerRadius="10" Padding="16,12" Margin="20" VerticalAlignment="Center">
+      <StackPanel>
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock x:Name="OverlayTitle" Foreground="{DynamicResource TextBrush}" FontSize="15" FontWeight="SemiBold"
+                     VerticalAlignment="Center" />
+          <Button x:Name="OverlayClose" Grid.Column="1" Style="{StaticResource IconButton}" Content="&#xE711;"
+                  Click="OnCloseDevices" />
+        </Grid>
+        <Grid Margin="0,6,0,0">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="90" />
+          </Grid.ColumnDefinitions>
+          <TextBlock x:Name="DeviceColumn" Style="{StaticResource Header}" Margin="2,6,0,6" />
+          <TextBlock x:Name="OnWidgetColumn" Grid.Column="1" Style="{StaticResource Header}" Margin="0,6,0,6"
+                     HorizontalAlignment="Center" />
+        </Grid>
+        <ScrollViewer x:Name="DeviceScroll" VerticalScrollBarVisibility="Auto">
+          <ItemsControl x:Name="DeviceList">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="{x:Type ui:DeviceSetting}">
+              <Grid Margin="0,0,0,8">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="90" />
+                </Grid.ColumnDefinitions>
+                <Grid>
+                  <TextBox x:Name="NameBox" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                           ToolTip="{Binding OwnName}" />
+                  <!-- Placeholder: the device's own name, shown while no alias is typed. -->
+                  <TextBlock Text="{Binding OwnName}" Foreground="{DynamicResource MutedBrush}" FontSize="13"
+                             Margin="9,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
+                    <TextBlock.Style>
+                      <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding Text, ElementName=NameBox}" Value="">
+                            <Setter Property="Visibility" Value="Visible" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </TextBlock.Style>
+                  </TextBlock>
+                </Grid>
+                <CheckBox Grid.Column="1" HorizontalAlignment="Center" IsChecked="{Binding OnWidget}"
+                          AutomationProperties.Name="{x:Static ui:Text.OnWidget}" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </StackPanel>
+    </Border>
+  </Border>
+  </Grid>
 </Window>

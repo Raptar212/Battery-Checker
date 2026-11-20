@@ -12,6 +12,10 @@ static class ScreenArea
     public static Rect Of(Window window) =>
         ToDip(window, Forms.Screen.FromHandle(new WindowInteropHelper(window).Handle).WorkingArea);
 
+    /// <summary>The whole monitor <paramref name="window"/> is on, taskbar included.</summary>
+    public static Rect BoundsOf(Window window) =>
+        ToDip(window, Forms.Screen.FromHandle(new WindowInteropHelper(window).Handle).Bounds);
+
     /// <summary>
     /// Is <paramref name="point"/> on some monitor (taskbar included: a floating widget may be parked on it)?
     /// The virtual-screen rectangle also covers the holes of an L-shaped layout or a monitor that is gone,
