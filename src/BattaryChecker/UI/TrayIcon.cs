@@ -72,7 +72,7 @@ public sealed class TrayIcon : IDisposable
 
     public void Update(IReadOnlyList<DeviceView> devices, string tooltip, bool widgetVisible)
     {
-        _shown = TrayGlyph.Pick(devices, _config.TrayDevices, TrayGlyph.MaxOf(_config.TrayStyle));
+        _shown = TrayGlyph.Pick(devices, _config.TrayDevices, TrayGlyph.MaxOf(_config.TrayStyle), _config.DeviceOrder);
         _light = TrayGlyph.LightTaskbar();
         _icon.Text = tooltip;
         _widgetItem.Text = widgetVisible ? Text.HideWidget : Text.ShowWidget;

@@ -36,9 +36,47 @@ public static class Levels
         return (dash, circumference - dash);
     }
 
-    /// <summary>Connected devices first, then by name.</summary>
-    public static IEnumerable<BatteryReading> Ordered(IEnumerable<BatteryReading> readings) =>
-        readings.OrderByDescending(r => r.Connected).ThenBy(r => r.Name, StringComparer.CurrentCultureIgnoreCase);
+    /// <summary>Position in the user's order; ids missing from it come last.</summary>
+    public static int Rank(string id, IList<string> order)
+    {
+        var i = order.IndexOf(id);
+        return i < 0 ? int.MaxValue : i;
+    }
+
+    /// <summary>
+    /// The edited order plus the ids it lacks (devices not reported right now), each put right after
+    /// the nearest preceding id of the previous order, so absent devices keep their place.
+    /// </summary>
+    public static List<string> MergeOrder(IReadOnlyList<string> edited, IReadOnlyList<string> previous)
+    {
+        var result = edited.ToList();
+        for (var i = 0; i < previous.Count; i++)
+        {
+            if (result.Contains(previous[i]))
+                continue;
+            var at = 0;
+            for (var j = i - 1; j >= 0; j--)
+            {
+                var k = result.IndexOf(previous[j]);
+                if (k >= 0)
+                {
+                    at = k + 1;
+                    break;
+                }
+            }
+            result.Insert(at, previous[i]);
+        }
+        return result;
+    }
+
+    /// <summary>The user's order, then by name for devices that are not in it.</summary>
+    public static IOrderedEnumerable<BatteryReading> ByUserOrder(IEnumerable<BatteryReading> readings, IList<string> order) =>
+        readings.OrderBy(r => Rank(r.Id, order)).ThenBy(r => r.Name, StringComparer.CurrentCultureIgnoreCase);
+
+    /// <summary>Connected devices first, then <see cref="ByUserOrder"/>.</summary>
+    public static IEnumerable<BatteryReading> Ordered(IEnumerable<BatteryReading> readings, IList<string> order) =>
+        readings.OrderByDescending(r => r.Connected).ThenBy(r => Rank(r.Id, order))
+            .ThenBy(r => r.Name, StringComparer.CurrentCultureIgnoreCase);
 
     /// <summary>Tray tooltip: one line per connected device, cut to Windows' 127-char limit.</summary>
     public static string Tooltip(IEnumerable<BatteryReading> readings)

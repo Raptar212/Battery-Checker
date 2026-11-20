@@ -100,6 +100,13 @@
       <Setter Property="FontWeight" Value="SemiBold" />
       <Setter Property="Margin" Value="2,14,0,8" />
     </Style>
+    <Style x:Key="MoveButton" TargetType="Button" BasedOn="{StaticResource IconButton}">
+      <Style.Triggers>
+        <Trigger Property="IsEnabled" Value="False">
+          <Setter Property="Opacity" Value="0.3" />
+        </Trigger>
+      </Style.Triggers>
+    </Style>
     <Style x:Key="RowButton" TargetType="Button">
       <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
       <Setter Property="FontSize" Value="13" />
@@ -264,6 +271,7 @@
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="90" />
+            <ColumnDefinition Width="64" />
           </Grid.ColumnDefinitions>
           <TextBlock x:Name="DeviceColumn" Style="{StaticResource Header}" Margin="2,6,0,6" />
           <TextBlock x:Name="OnWidgetColumn" Grid.Column="1" Style="{StaticResource Header}" Margin="0,6,0,6"
@@ -277,6 +285,7 @@
                 <Grid.ColumnDefinitions>
                   <ColumnDefinition Width="*" />
                   <ColumnDefinition Width="90" />
+                  <ColumnDefinition Width="64" />
                 </Grid.ColumnDefinitions>
                 <Grid>
                   <TextBox x:Name="NameBox" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
@@ -298,6 +307,14 @@
                 </Grid>
                 <CheckBox Grid.Column="1" HorizontalAlignment="Center" IsChecked="{Binding OnWidget}"
                           AutomationProperties.Name="{x:Static ui:Text.OnWidget}" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                  <Button x:Name="UpButton" Style="{StaticResource MoveButton}" Content="&#xE70E;" Width="30" Height="30"
+                          IsEnabled="{Binding CanUp}" Click="OnMoveUp" ToolTip="{x:Static ui:Text.MoveUp}"
+                          AutomationProperties.Name="{x:Static ui:Text.MoveUp}" />
+                  <Button x:Name="DownButton" Style="{StaticResource MoveButton}" Content="&#xE70D;" Width="30" Height="30"
+                          IsEnabled="{Binding CanDown}" Click="OnMoveDown" ToolTip="{x:Static ui:Text.MoveDown}"
+                          AutomationProperties.Name="{x:Static ui:Text.MoveDown}" />
+                </StackPanel>
               </Grid>
             </DataTemplate>
           </ItemsControl.ItemTemplate>

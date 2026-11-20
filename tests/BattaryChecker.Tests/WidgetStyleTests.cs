@@ -33,6 +33,22 @@ public sealed class WidgetStyleTests : IDisposable
         Assert.Equal(expected, AppConfig.Load(path).PinnedWidgetStyle);
     }
 
+    [Fact]
+    public void Config_DeviceOrderDropsBlanksAndDuplicates()
+    {
+        var path = Path.Combine(_dir, "config.json");
+        File.WriteAllText(path, """{ "DeviceOrder": ["a", "", null, "b", "a"] }""");
+        Assert.Equal(["a", "b"], AppConfig.Load(path).DeviceOrder);
+    }
+
+    [Fact]
+    public void Config_NullDeviceOrderBecomesEmpty()
+    {
+        var path = Path.Combine(_dir, "config.json");
+        File.WriteAllText(path, """{ "DeviceOrder": null }""");
+        Assert.Empty(AppConfig.Load(path).DeviceOrder);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData(0)]

@@ -34,6 +34,9 @@ public sealed class AppConfig
     /// <summary>Look of the widget pinned into the taskbar: only Horizontal and Compact fit its height.</summary>
     public WidgetStyle PinnedWidgetStyle { get; set; } = WidgetStyle.Horizontal;
 
+    /// <summary>Device ids in the order the user arranged them; devices not listed come last, by name.</summary>
+    public List<string> DeviceOrder { get; set; } = [];
+
     /// <summary>Devices the tray icon shows; empty = every connected device.</summary>
     public List<string> TrayDevices { get; set; } = [];
 
@@ -73,6 +76,7 @@ public sealed class AppConfig
     {
         HiddenDevices ??= [];
         TrayDevices ??= [];
+        DeviceOrder = DeviceOrder?.Where(id => !string.IsNullOrEmpty(id)).Distinct().ToList() ?? [];
         DeviceNames ??= [];
         (LowThreshold, MediumThreshold) = ClampThresholds(LowThreshold, MediumThreshold);
         CriticalThreshold = ClampCritical(CriticalThreshold, LowThreshold);

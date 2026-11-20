@@ -67,6 +67,8 @@ public static class Text
     public static string StartWithWindows => T("Запускать вместе с Windows", "Start with Windows");
     public static string Devices => T("Устройства", "Devices");
     public static string DevicesButton(int n) => T($"Устройства ({n})", $"Devices ({n})");
+    public static string MoveUp => T("Выше", "Move up");
+    public static string MoveDown => T("Ниже", "Move down");
     public static string DeviceColumn => T("Устройство", "Device");
     public static string OnWidget => T("На виджете", "On widget");
     public static string Notifications => T("Уведомлять о низком и полном заряде", "Notify about low and full battery");
