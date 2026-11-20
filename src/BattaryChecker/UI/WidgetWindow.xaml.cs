@@ -27,9 +27,12 @@ public partial class WidgetWindow : Window
     (WidgetStyle Style, int Columns)? _applied;
     int _count;
     bool _switchingPin; // a pin-mode restyle resizes the widget; that is not the user's doing
+    bool _fallback; // the saved position's monitor is gone: the widget stands in for it, the config keeps it
     // Explorer raises its topmost taskbar over a floating widget when the taskbar is clicked.
     readonly DispatcherTimer _floatTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     readonly DispatcherTimer _dockTimer = new() { Interval = TimeSpan.FromSeconds(1) };
+    // Explorer brings a secondary taskbar up a moment after the display change: look once more later.
+    readonly DispatcherTimer _displayTimer = new() { Interval = TimeSpan.FromSeconds(3) };
 
     public event Action? Clicked;
     public event Action? Moved;
@@ -38,6 +41,13 @@ public partial class WidgetWindow : Window
     {
         InitializeComponent();
         _config = config;
+        if (!_config.PositionInPixels) // saved by a DPI-unaware version: DIPs at the system DPI
+        {
+            var dpi = ScreenArea.SystemDpi();
+            if (_config.WidgetLeft is { } left && _config.WidgetTop is { } top)
+                (_config.WidgetLeft, _config.WidgetTop) = (Placement.DipToPixels(left, dpi), Placement.DipToPixels(top, dpi));
+            _config.PositionInPixels = true;
+        }
         ApplyStyle();
         Loaded += (_, _) =>
         {
@@ -47,7 +57,19 @@ public partial class WidgetWindow : Window
         IsVisibleChanged += (_, _) => ApplyPin();
         _dockTimer.Tick += (_, _) => Dock();
         _floatTimer.Tick += (_, _) => KeepFloatingAbove();
-        Closed += (_, _) => (_dockTimer.IsEnabled, _floatTimer.IsEnabled) = (false, false); // also when Explorer takes the window down
+        _displayTimer.Tick += (_, _) =>
+        {
+            _displayTimer.Stop();
+            OnDisplayChanged(true);
+        };
+        SourceInitialized += (_, _) => HwndSource.FromHwnd(Handle)?.AddHook(OnMessage);
+        // Same DIP size, another physical one: SizeChanged does not come, the slot must be resized.
+        DpiChanged += (_, _) =>
+        {
+            if (_dock.Docked)
+                Dispatcher.BeginInvoke(Dock, DispatcherPriority.Background);
+        };
+        Closed += (_, _) => (_dockTimer.IsEnabled, _floatTimer.IsEnabled, _displayTimer.IsEnabled) = (false, false, false); // also when Explorer takes the window down
         // Keep the right edge in place: the pill grows to the left as devices appear,
         // so a widget parked at the right screen edge never slides off it.
         SizeChanged += (_, e) =>
@@ -70,15 +92,19 @@ public partial class WidgetWindow : Window
     {
         Left -= delta.X;
         Top -= delta.Y;
-        if (Handle != 0) // a growing widget must not leave its monitor; it may stay parked on the taskbar
-        {
-            var area = ScreenArea.BoundsOf(this);
-            Left = Math.Max(area.Left, Math.Min(Left, area.Right - ActualWidth));
-            Top = Math.Max(area.Top, Math.Min(Top, area.Bottom - ActualHeight));
-        }
+        if (Handle == 0)
+            return;
+        // A growing widget must not leave its monitor; it may stay parked on the taskbar. In physical pixels:
+        // a DIP size rounds, and the widget stuck out a pixel past the edge.
+        var (l, t) = ScreenArea.ToPhysical(this, new Point(Left, Top));
+        var (r, b) = ScreenArea.ToPhysical(this, new Point(Left + ActualWidth, Top + ActualHeight));
+        var (x, y) = Placement.Clamp((l, t, r, b), ScreenArea.MonitorOf(Handle));
+        var dip = ScreenArea.ToDip(this, x, y);
+        (Left, Top) = (dip.X, dip.Y);
         // In memory only: a size change can come with every poll; the next save or the exit writes it.
-        if (_config.WidgetLeft is not null)
-            (_config.WidgetLeft, _config.WidgetTop) = (Left, Top);
+        // Not while standing in for a monitor that is gone: the widget goes back there when it returns.
+        if (_config.WidgetLeft is not null && !_fallback)
+            (_config.WidgetLeft, _config.WidgetTop) = (x, y);
     }
 
     /// <summary>Picks the panel and item template of the current style; a pinned widget uses its own (Horizontal or Compact).</summary>
@@ -125,7 +151,11 @@ public partial class WidgetWindow : Window
         }
         if (pin)
         {
+            if (!_dock.Docked)
+                _dock.Retarget(Handle, DockHint());
             Dock();
+            if (!_dock.Docked)
+                PlaceInitially(); // no slot: the pinned style must not leave the monitor either
         }
         else if (_dock.Docked)
         {
@@ -139,7 +169,49 @@ public partial class WidgetWindow : Window
     void KeepFloatingAbove()
     {
         if (Handle != 0 && !_dock.Docked && IsVisible)
-            _dock.KeepAbove(Handle);
+            _dock.KeepAbove(Handle, DockHint());
+    }
+
+    /// <summary>Where the taskbar to dock into is looked for: the centre of the saved floating position, else of the widget.</summary>
+    (int X, int Y) DockHint()
+    {
+        ScreenArea.WindowRect(Handle, out var r);
+        var (w, h) = (r.R - r.L, r.B - r.T);
+        return _config.WidgetLeft is { } left && _config.WidgetTop is { } top
+            ? ((int)Math.Round(left) + w / 2, (int)Math.Round(top) + h / 2)
+            : (r.L + w / 2, r.T + h / 2);
+    }
+
+    const int WM_DISPLAYCHANGE = 0x007E;
+
+    nint OnMessage(nint hwnd, int msg, nint wParam, nint lParam, ref bool handled)
+    {
+        if (msg == WM_DISPLAYCHANGE)
+        {
+            // After the message: monitors and taskbars are still being rearranged inside it.
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => OnDisplayChanged(false)));
+            _displayTimer.Stop();
+            _displayTimer.Start();
+        }
+        return 0;
+    }
+
+    /// <summary>
+    /// A monitor came or went: re-place a floating widget, re-dock a docked one on the taskbar of its monitor.
+    /// The same taskbar as before is not released: the async resize back and the re-dock reading the old list
+    /// width left the task buttons laid out wrong for a second. The late second pass acts only on a new taskbar.
+    /// </summary>
+    void OnDisplayChanged(bool onlyIfRetargeted)
+    {
+        if (Handle == 0)
+            return;
+        var docked = _dock.Docked;
+        if (!_dock.Retarget(Handle, DockHint()) && onlyIfRetargeted)
+            return;
+        if (docked)
+            Dock();
+        if (!_dock.Docked)
+            PlaceInitially();
     }
 
     /// <summary>Gives the task buttons their space back; call on exit.</summary>
@@ -158,7 +230,7 @@ public partial class WidgetWindow : Window
     {
         if (Handle == 0 || !_dockTimer.IsEnabled) // a Dock queued before an unpin must not re-dock
             return;
-        if (_dock.Dock(Handle))
+        if (_dock.Dock(Handle, DockHint()))
         {
             Opacity = _dock.FullscreenForeground(Handle) ? 0 : 1;
             return;
@@ -189,17 +261,35 @@ public partial class WidgetWindow : Window
             visible.Any(d => d.Level == Level.Low) ? "AccentBrush" : "FrameBrush");
     }
 
+    /// <summary>
+    /// The saved position (physical pixels) on its monitor, clamped to it (a pinned style may be larger); its monitor
+    /// gone, the nearest one stands in without overwriting it. Nothing saved: the primary monitor's bottom-right corner.
+    /// </summary>
     void PlaceInitially()
     {
-        var area = SystemParameters.WorkArea;
-        if (_config.WidgetLeft is { } left && _config.WidgetTop is { } top
-            && ScreenArea.OnAnyMonitor(this, new Point(left + 10, top + 10)))
+        _fallback = false;
+        var monitors = ScreenArea.Monitors();
+        if (Handle == 0 || monitors.Count == 0)
+            return;
+        if (_config.WidgetLeft is { } left && _config.WidgetTop is { } top)
         {
-            Left = left;
-            Top = top;
+            var (x, y) = ((int)Math.Round(left), (int)Math.Round(top));
+            var corner = (x + 10, y + 10);
+            var monitor = monitors[Placement.Nearest(monitors, corner)];
+            _fallback = !Placement.Contains(monitor, corner);
+            // Move first: on a monitor of another DPI the widget takes its physical size there.
+            ScreenArea.MoveTo(Handle, x, y);
+            if (!ScreenArea.WindowRect(Handle, out var own))
+                return;
+            var (cx, cy) = Placement.Clamp(own, monitor);
+            if ((cx, cy) != (own.L, own.T))
+                ScreenArea.MoveTo(Handle, cx, cy);
             return;
         }
-        // Default: bottom-right corner of the primary work area, just above the taskbar.
+        // Default: bottom-right corner of the primary work area, just above the taskbar. The primary monitor
+        // starts at (0, 0); there first, so the DIPs below are the primary monitor's.
+        ScreenArea.MoveTo(Handle, 0, 0);
+        var area = SystemParameters.WorkArea;
         Left = area.Right - ActualWidth - ScreenMargin;
         Top = area.Bottom - ActualHeight - ScreenMargin;
     }
@@ -218,8 +308,10 @@ public partial class WidgetWindow : Window
             Clicked?.Invoke();
             return;
         }
-        _config.WidgetLeft = Left;
-        _config.WidgetTop = Top;
+        _fallback = false;
+        if (ScreenArea.WindowRect(Handle, out var own))
+            (_config.WidgetLeft, _config.WidgetTop) = (own.L, own.T);
+        _dock.Retarget(Handle, DockHint());
         Moved?.Invoke();
     }
 }

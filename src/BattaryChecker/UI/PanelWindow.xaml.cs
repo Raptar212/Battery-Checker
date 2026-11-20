@@ -55,9 +55,18 @@ public partial class PanelWindow : Window
     public void ShowNear(Window? anchor)
     {
         _anchor = anchor;
+        Opacity = 0; // not seen at the spot Show() puts it before it moves to the anchor
         Show();
+        // Onto the anchor's monitor (the primary one starts at 0, 0) before placing: the panel takes that
+        // monitor's DPI, so its DIPs match the anchor's.
+        var own = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        if (anchor is not null && ScreenArea.WindowRect(new System.Windows.Interop.WindowInteropHelper(anchor).Handle, out var at))
+            ScreenArea.MoveTo(own, at.L, at.T);
+        else
+            ScreenArea.MoveTo(own, 0, 0);
         UpdateLayout();
         Place();
+        Opacity = 1;
         Activate();
     }
 
