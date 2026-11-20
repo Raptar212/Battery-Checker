@@ -26,7 +26,11 @@ The app installs to `%LOCALAPPDATA%\Programs\Battery Checker`.
 - **Right-click** the tray icon — menu: hide the widget, pin it into the taskbar (Windows 10 taskbar only),
   scan devices, settings, check for updates.
 - In the list: the **eye** hides a device from the widget, the **pin** chooses what the tray icon shows.
-- **Settings:** battery thresholds and colors, notifications, tray icon style, start with Windows, device names.
+- **Settings:** battery thresholds and colors, notifications, tray icon style, light/dark theme (follows
+  Windows by default), widget style (horizontal, vertical, compact, tiles with rings, with names; horizontal
+  or compact when pinned), start with Windows, device names, order and which ones the widget shows.
+- Works with several monitors: sharp at any scale, pins into the taskbar of the widget's monitor, and
+  moves to the nearest monitor when its own is disconnected.
 
 The interface is in Russian on Russian Windows and in English otherwise.
 
@@ -89,7 +93,11 @@ How each device is read is documented in [docs/PROTOCOLS.md](docs/PROTOCOLS.md).
 - **Правый клик** по значку в трее — меню: скрыть виджет, закрепить его на панели задач (только панель
   задач Windows 10), сканировать устройства, настройки, проверить обновления.
 - В списке: **глаз** скрывает устройство с виджета, **скрепка** выбирает, что показывает иконка в трее.
-- **Настройки:** пороги заряда и цвета, уведомления, вид иконки в трее, автозапуск, имена устройств.
+- **Настройки:** пороги заряда и цвета, уведомления, вид иконки в трее, светлая/тёмная тема (по умолчанию
+  как в Windows), вид виджета (горизонтальный, вертикальный, компактный, плитка с кольцами, с именами; в
+  панели задач — горизонтальный или компактный), автозапуск, имена устройств, их порядок и что видно на виджете.
+- Несколько мониторов: чётко при любом масштабе, закрепление в панели задач монитора виджета, при
+  отключении монитора виджет переходит на ближайший.
 
 Интерфейс на русском, если Windows на русском, иначе на английском.
 

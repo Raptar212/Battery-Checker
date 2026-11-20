@@ -16,7 +16,7 @@
          to move it there (WFO0003) does not apply: WinForms here is only the tray NotifyIcon. -->
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <NoWarn>$(NoWarn);WFO0003</NoWarn>
-    <Version>1.0.1</Version>
+    <Version>1.1.0</Version>
     <Product>Battery Checker</Product>
     <AssemblyTitle>Battery Checker</AssemblyTitle>
   </PropertyGroup>
