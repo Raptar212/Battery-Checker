@@ -52,6 +52,8 @@ public static class Text
         + "могут перестать его видеть — тогда выключите и переподключите геймпад.",
         "Switches the controller to full mode, as Steam does. Games without Steam Input that read the controller "
         + "directly may stop seeing it — then turn this off and reconnect the controller.");
+    public static string ThemeLabel => T("Тема", "Theme");
+    public static string[] Themes => Russian ? ["Системная", "Тёмная", "Светлая"] : ["System", "Dark", "Light"]; // order of ThemeMode
     public static string TrayStyleLabel => T("Иконка в трее", "Tray icon");
     public static string[] TrayStyles => Russian ? ["Столбики", "Кольца", "Число"] : ["Bars", "Rings", "Number"]; // order of AppConfig.TrayStyle
     public static string AddToTray => T("Показывать в трее", "Show in the tray");

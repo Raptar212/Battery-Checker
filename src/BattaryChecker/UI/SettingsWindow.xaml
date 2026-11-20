@@ -7,32 +7,32 @@
         Topmost="True" ShowInTaskbar="True">
   <Window.Resources>
     <Style TargetType="TextBox">
-      <Setter Property="Background" Value="{StaticResource CardBrush}" />
-      <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
-      <Setter Property="BorderBrush" Value="{StaticResource FrameBrush}" />
-      <Setter Property="CaretBrush" Value="{StaticResource TextBrush}" />
+      <Setter Property="Background" Value="{DynamicResource CardBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource FrameBrush}" />
+      <Setter Property="CaretBrush" Value="{DynamicResource TextBrush}" />
       <Setter Property="Padding" Value="6,4" />
       <Setter Property="FontSize" Value="13" />
     </Style>
     <Style TargetType="CheckBox">
-      <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
       <Setter Property="FontSize" Value="13" />
       <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
     <Style TargetType="RadioButton">
-      <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
       <Setter Property="FontSize" Value="13" />
       <Setter Property="VerticalContentAlignment" Value="Center" />
       <Setter Property="Margin" Value="0,0,16,0" />
     </Style>
     <Style x:Key="Header" TargetType="TextBlock">
-      <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
       <Setter Property="FontSize" Value="11" />
       <Setter Property="FontWeight" Value="SemiBold" />
       <Setter Property="Margin" Value="2,14,0,8" />
     </Style>
     <Style x:Key="ActionButton" TargetType="Button">
-      <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
       <Setter Property="FontSize" Value="13" />
       <Setter Property="Cursor" Value="Hand" />
       <Setter Property="Template">
@@ -52,15 +52,15 @@
     </Style>
   </Window.Resources>
 
-  <Border Background="{StaticResource SurfaceBrush}" CornerRadius="10" Padding="16,14"
-          BorderBrush="{StaticResource FrameBrush}" BorderThickness="1">
+  <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="10" Padding="16,14"
+          BorderBrush="{DynamicResource FrameBrush}" BorderThickness="1">
     <StackPanel>
       <Grid Background="Transparent" MouseLeftButtonDown="OnHeaderDrag">
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*" />
           <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
-        <TextBlock x:Name="TitleText" Foreground="{StaticResource TextBrush}" FontSize="15" FontWeight="SemiBold"
+        <TextBlock x:Name="TitleText" Foreground="{DynamicResource TextBrush}" FontSize="15" FontWeight="SemiBold"
                    VerticalAlignment="Center" />
         <Button Grid.Column="1" Style="{StaticResource IconButton}" Content="&#xE711;" Click="OnCancel"
                 ToolTip="{x:Static ui:Text.Close}" AutomationProperties.Name="{x:Static ui:Text.Close}" />
@@ -78,27 +78,27 @@
           <RowDefinition Height="8" />
           <RowDefinition />
         </Grid.RowDefinitions>
-        <TextBlock x:Name="CriticalLabel" Foreground="{StaticResource TextBrush}" FontSize="13"
+        <TextBlock x:Name="CriticalLabel" Foreground="{DynamicResource TextBrush}" FontSize="13"
                    VerticalAlignment="Center" />
         <TextBox x:Name="CriticalBox" Grid.Column="1" TextAlignment="Right"
                  AutomationProperties.LabeledBy="{Binding ElementName=CriticalLabel}" />
-        <TextBlock x:Name="LowLabel" Grid.Row="2" Foreground="{StaticResource TextBrush}" FontSize="13"
+        <TextBlock x:Name="LowLabel" Grid.Row="2" Foreground="{DynamicResource TextBrush}" FontSize="13"
                    VerticalAlignment="Center" />
         <TextBox x:Name="LowBox" Grid.Row="2" Grid.Column="1" TextAlignment="Right"
                  AutomationProperties.LabeledBy="{Binding ElementName=LowLabel}" />
-        <TextBlock x:Name="MediumLabel" Grid.Row="4" Foreground="{StaticResource TextBrush}" FontSize="13"
+        <TextBlock x:Name="MediumLabel" Grid.Row="4" Foreground="{DynamicResource TextBrush}" FontSize="13"
                    VerticalAlignment="Center" />
         <TextBox x:Name="MediumBox" Grid.Row="4" Grid.Column="1" TextAlignment="Right"
                  AutomationProperties.LabeledBy="{Binding ElementName=MediumLabel}" />
       </Grid>
-      <TextBlock x:Name="ThresholdsHint" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="2,6,0,0"
+      <TextBlock x:Name="ThresholdsHint" Foreground="{DynamicResource MutedBrush}" FontSize="11" Margin="2,6,0,0"
                  TextWrapping="Wrap" />
 
       <CheckBox x:Name="AutostartBox" Margin="0,14,0,0" />
       <CheckBox x:Name="NotificationsBox" Margin="0,8,0,0" />
       <CheckBox x:Name="BlinkBox" Margin="0,8,0,0" />
       <CheckBox x:Name="DualSenseBox" Margin="0,8,0,0" />
-      <TextBlock x:Name="DualSenseHint" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="22,2,0,0"
+      <TextBlock x:Name="DualSenseHint" Foreground="{DynamicResource MutedBrush}" FontSize="11" Margin="22,2,0,0"
                  TextWrapping="Wrap" />
       <CheckBox x:Name="UpdatesBox" Margin="0,8,0,0" />
 
@@ -107,6 +107,13 @@
         <RadioButton x:Name="BarsRadio" GroupName="Tray" />
         <RadioButton x:Name="RingRadio" GroupName="Tray" />
         <RadioButton x:Name="NumberRadio" GroupName="Tray" />
+      </StackPanel>
+
+      <TextBlock x:Name="ThemeHeader" Style="{StaticResource Header}" />
+      <StackPanel Orientation="Horizontal">
+        <RadioButton x:Name="SystemThemeRadio" GroupName="Theme" />
+        <RadioButton x:Name="DarkThemeRadio" GroupName="Theme" />
+        <RadioButton x:Name="LightThemeRadio" GroupName="Theme" />
       </StackPanel>
 
       <TextBlock x:Name="DevicesHeader" Style="{StaticResource Header}" />
@@ -122,7 +129,7 @@
                 <TextBox x:Name="NameBox" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
                          ToolTip="{Binding OwnName}" />
                 <!-- Placeholder: the device's own name, shown while no alias is typed. -->
-                <TextBlock Text="{Binding OwnName}" Foreground="{StaticResource MutedBrush}" FontSize="13"
+                <TextBlock Text="{Binding OwnName}" Foreground="{DynamicResource MutedBrush}" FontSize="13"
                            Margin="9,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
                   <TextBlock.Style>
                     <Style TargetType="TextBlock">
@@ -144,9 +151,9 @@
       </ItemsControl>
 
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
-        <Button x:Name="CancelButton" Style="{StaticResource ActionButton}" Background="{StaticResource CardBrush}"
+        <Button x:Name="CancelButton" Style="{StaticResource ActionButton}" Background="{DynamicResource CardBrush}"
                 Click="OnCancel" IsCancel="True" />
-        <Button x:Name="SaveButton" Style="{StaticResource ActionButton}" Background="{StaticResource AccentBrush}"
+        <Button x:Name="SaveButton" Style="{StaticResource ActionButton}" Background="{DynamicResource AccentBrush}" Foreground="White"
                 Margin="8,0,0,0" Click="OnSave" IsDefault="True" />
       </StackPanel>
     </StackPanel>

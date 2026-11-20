@@ -5,6 +5,8 @@ namespace BattaryChecker;
 
 public enum TrayStyle { Bars, Ring, Number }
 
+public enum ThemeMode { System, Dark, Light }
+
 /// <summary>User settings, stored as JSON in %LOCALAPPDATA%\BattaryChecker\config.json.</summary>
 public sealed class AppConfig
 {
@@ -20,6 +22,9 @@ public sealed class AppConfig
     public bool BlinkCritical { get; set; } = true;
 
     public TrayStyle TrayStyle { get; set; } = TrayStyle.Bars;
+
+    /// <summary>Interface theme; System follows the Windows apps theme.</summary>
+    public ThemeMode Theme { get; set; } = ThemeMode.System;
 
     /// <summary>Devices the tray icon shows; empty = every connected device.</summary>
     public List<string> TrayDevices { get; set; } = [];
@@ -65,6 +70,8 @@ public sealed class AppConfig
         CriticalThreshold = ClampCritical(CriticalThreshold, LowThreshold);
         if (!Enum.IsDefined(TrayStyle))
             TrayStyle = TrayStyle.Bars;
+        if (!Enum.IsDefined(Theme))
+            Theme = ThemeMode.System;
     }
 
     /// <summary>The name to show for a device: the user's alias if set, else its own.</summary>
