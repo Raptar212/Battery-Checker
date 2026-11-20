@@ -1,4 +1,6 @@
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -22,6 +24,11 @@ public partial class WidgetWindow : Window
     public const int MaxDevices = 4;
     readonly AppConfig _config;
     readonly TaskbarDock _dock = new();
+    (WidgetStyle Style, int Columns)? _applied;
+    int _count;
+    bool _switchingPin; // a pin-mode restyle resizes the widget; that is not the user's doing
+    // Explorer raises its topmost taskbar over a floating widget when the taskbar is clicked.
+    readonly DispatcherTimer _floatTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     readonly DispatcherTimer _dockTimer = new() { Interval = TimeSpan.FromSeconds(1) };
 
     public event Action? Clicked;
@@ -31,6 +38,7 @@ public partial class WidgetWindow : Window
     {
         InitializeComponent();
         _config = config;
+        ApplyStyle();
         Loaded += (_, _) =>
         {
             PlaceInitially();
@@ -38,16 +46,64 @@ public partial class WidgetWindow : Window
         };
         IsVisibleChanged += (_, _) => ApplyPin();
         _dockTimer.Tick += (_, _) => Dock();
-        Closed += (_, _) => _dockTimer.Stop(); // also when Explorer takes the window down
+        _floatTimer.Tick += (_, _) => KeepFloatingAbove();
+        Closed += (_, _) => (_dockTimer.IsEnabled, _floatTimer.IsEnabled) = (false, false); // also when Explorer takes the window down
         // Keep the right edge in place: the pill grows to the left as devices appear,
         // so a widget parked at the right screen edge never slides off it.
         SizeChanged += (_, e) =>
         {
             if (_dock.Docked) // after the HWND has its new size, which Dock reads
                 Dispatcher.BeginInvoke(Dock, DispatcherPriority.Background);
-            else if (e.WidthChanged && e.PreviousSize.Width > 0)
-                Left -= e.NewSize.Width - e.PreviousSize.Width;
+            else if (!_switchingPin && e.PreviousSize.Width > 0 && (e.WidthChanged || e.HeightChanged))
+                KeepEdges(new Vector(e.NewSize.Width - e.PreviousSize.Width, e.NewSize.Height - e.PreviousSize.Height));
         };
+    }
+
+    /// <summary>A pinned widget has its own style (Horizontal or Compact): only those fit the taskbar height.</summary>
+    WidgetStyle EffectiveStyle => _config.PinToTaskbar ? _config.PinnedWidgetStyle : _config.WidgetStyle;
+
+    /// <summary>
+    /// A floating widget grows and shrinks to the left and up, so the right and bottom edges
+    /// stay put (clamped to the monitor). A saved position follows, or the widget would jump back on the next start.
+    /// </summary>
+    void KeepEdges(Vector delta)
+    {
+        Left -= delta.X;
+        Top -= delta.Y;
+        if (Handle != 0) // a growing widget must not leave its monitor; it may stay parked on the taskbar
+        {
+            var area = ScreenArea.BoundsOf(this);
+            Left = Math.Max(area.Left, Math.Min(Left, area.Right - ActualWidth));
+            Top = Math.Max(area.Top, Math.Min(Top, area.Bottom - ActualHeight));
+        }
+        // In memory only: a size change can come with every poll; the next save or the exit writes it.
+        if (_config.WidgetLeft is not null)
+            (_config.WidgetLeft, _config.WidgetTop) = (Left, Top);
+    }
+
+    /// <summary>Picks the panel and item template of the current style; a pinned widget uses its own (Horizontal or Compact).</summary>
+    public void ApplyStyle()
+    {
+        var style = EffectiveStyle;
+        var key = (style, style == WidgetStyle.Tiles ? Math.Clamp(_count, 1, 2) : 0);
+        if (_applied == key)
+            return;
+        _applied = key;
+        var vertical = style is WidgetStyle.Vertical or WidgetStyle.Named or WidgetStyle.Tiles;
+        Items.ItemsPanel = style == WidgetStyle.Tiles ? TilesPanel(key.Item2)
+            : (ItemsPanelTemplate)Resources[vertical ? "ColumnPanel" : "RowPanel"];
+        Items.ItemTemplate = (DataTemplate)Resources[style + "Item"];
+        Stack.Orientation = vertical ? Orientation.Vertical : Orientation.Horizontal;
+        More.Margin = vertical ? new Thickness(0, 2, 0, 0) : new Thickness(10, 0, 0, 0);
+        More.HorizontalAlignment = vertical ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;
+        UpdateLayout();
+    }
+
+    static ItemsPanelTemplate TilesPanel(int columns)
+    {
+        var grid = new FrameworkElementFactory(typeof(UniformGrid));
+        grid.SetValue(UniformGrid.ColumnsProperty, columns);
+        return new ItemsPanelTemplate(grid);
     }
 
     nint Handle => new WindowInteropHelper(this).Handle;
@@ -57,6 +113,16 @@ public partial class WidgetWindow : Window
     {
         var pin = _config.PinToTaskbar && IsVisible;
         _dockTimer.IsEnabled = pin;
+        _floatTimer.IsEnabled = !pin && IsVisible; // never runs for a hidden widget
+        _switchingPin = true;
+        try
+        {
+            ApplyStyle();
+        }
+        finally
+        {
+            _switchingPin = false;
+        }
         if (pin)
         {
             Dock();
@@ -67,6 +133,13 @@ public partial class WidgetWindow : Window
             _dock.Release(Handle);
             PlaceInitially();
         }
+        KeepFloatingAbove();
+    }
+
+    void KeepFloatingAbove()
+    {
+        if (Handle != 0 && !_dock.Docked && IsVisible)
+            _dock.KeepAbove(Handle);
     }
 
     /// <summary>Gives the task buttons their space back; call on exit.</summary>
@@ -83,7 +156,7 @@ public partial class WidgetWindow : Window
     /// </remarks>
     void Dock()
     {
-        if (Handle == 0)
+        if (Handle == 0 || !_dockTimer.IsEnabled) // a Dock queued before an unpin must not re-dock
             return;
         if (_dock.Dock(Handle))
         {
@@ -92,7 +165,10 @@ public partial class WidgetWindow : Window
         }
         Opacity = 1;
         if (!_dock.Docked)
+        {
+            KeepFloatingAbove(); // no slot: floating meanwhile
             return;
+        }
         _dock.Release(Handle);
         PlaceInitially();
     }
@@ -101,7 +177,10 @@ public partial class WidgetWindow : Window
     {
         var shown = devices.Where(d => d.Connected && !d.Hidden).ToList();
         var visible = shown.Take(MaxDevices).ToList();
-        Items.ItemsSource = visible.Select((d, i) => new WidgetItem(d, i > 0)).ToList();
+        _count = visible.Count;
+        ApplyStyle();
+        var separators = EffectiveStyle is WidgetStyle.Horizontal or WidgetStyle.Compact;
+        Items.ItemsSource = visible.Select((d, i) => new WidgetItem(d, separators && i > 0)).ToList();
         More.Text = Text.MoreDevices(shown.Count - visible.Count);
         More.Visibility = shown.Count > visible.Count ? Visibility.Visible : Visibility.Collapsed;
         Empty.Visibility = visible.Count == 0 ? Visibility.Visible : Visibility.Collapsed;

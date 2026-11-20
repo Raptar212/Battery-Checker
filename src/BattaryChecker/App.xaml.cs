@@ -349,6 +349,9 @@ public partial class App : Application
         _config.TrayStyle = result.TrayStyle;
         _config.Theme = result.Theme;
         Theme.Apply(Resources, _config.Theme);
+        _config.WidgetStyle = result.WidgetStyle;
+        _config.PinnedWidgetStyle = result.PinnedWidgetStyle;
+        _widget?.ApplyStyle();
         _config.CheckUpdates = result.CheckUpdates;
         if (!result.CheckUpdates)
             _updateTimer.Stop(); // turned off within the first minute: skip the pending start check

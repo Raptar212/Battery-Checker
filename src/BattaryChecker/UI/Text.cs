@@ -54,13 +54,20 @@ public static class Text
         + "directly may stop seeing it — then turn this off and reconnect the controller.");
     public static string ThemeLabel => T("Тема", "Theme");
     public static string[] Themes => Russian ? ["Системная", "Тёмная", "Светлая"] : ["System", "Dark", "Light"]; // order of ThemeMode
+    public static string FloatingWidgetLabel => T("Свободный виджет", "Floating widget");
+    public static string TaskbarWidgetLabel => T("В панели задач", "In the taskbar");
+    public static string[] WidgetStyles => Russian
+        ? ["Горизонтальный", "Вертикальный", "Компактный", "Плитка", "С именами"]
+        : ["Horizontal", "Vertical", "Compact", "Tiles", "With names"]; // order of WidgetStyle
     public static string TrayStyleLabel => T("Иконка в трее", "Tray icon");
     public static string[] TrayStyles => Russian ? ["Столбики", "Кольца", "Число"] : ["Bars", "Rings", "Number"]; // order of AppConfig.TrayStyle
     public static string AddToTray => T("Показывать в трее", "Show in the tray");
     public static string RemoveFromTray => T("Убрать из трея", "Remove from the tray");
     public static string PinToTaskbar => T("Закрепить на панели задач", "Pin to taskbar");
     public static string StartWithWindows => T("Запускать вместе с Windows", "Start with Windows");
-    public static string Devices => T("УСТРОЙСТВА", "DEVICES");
+    public static string Devices => T("Устройства", "Devices");
+    public static string DevicesButton(int n) => T($"Устройства ({n})", $"Devices ({n})");
+    public static string DeviceColumn => T("Устройство", "Device");
     public static string OnWidget => T("На виджете", "On widget");
     public static string Notifications => T("Уведомлять о низком и полном заряде", "Notify about low and full battery");
     public static string LowBatteryTitle => T("Низкий заряд", "Low battery");
