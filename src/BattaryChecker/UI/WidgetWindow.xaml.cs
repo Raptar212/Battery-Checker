@@ -105,9 +105,9 @@ public partial class WidgetWindow : Window
         More.Text = Text.MoreDevices(shown.Count - visible.Count);
         More.Visibility = shown.Count > visible.Count ? Visibility.Visible : Visibility.Collapsed;
         Empty.Visibility = visible.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        Frame.BorderBrush = visible.Any(d => d.Level == Level.Low)
-            ? (Brush)FindResource("AccentBrush")
-            : (Brush)FindResource("FrameBrush");
+        // A resource reference, not the brush itself: the border follows a theme switch.
+        Frame.SetResourceReference(System.Windows.Controls.Border.BorderBrushProperty,
+            visible.Any(d => d.Level == Level.Low) ? "AccentBrush" : "FrameBrush");
     }
 
     void PlaceInitially()

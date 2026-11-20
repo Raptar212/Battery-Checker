@@ -63,6 +63,13 @@ public sealed class TrayIcon : IDisposable
 
     int Critical => AppConfig.ClampCritical(_config.CriticalThreshold, _config.LowThreshold);
 
+    /// <summary>Windows switched its theme: reread the taskbar colour and redraw at once.</summary>
+    public void RefreshTheme()
+    {
+        _light = TrayGlyph.LightTaskbar();
+        Redraw();
+    }
+
     public void Update(IReadOnlyList<DeviceView> devices, string tooltip, bool widgetVisible)
     {
         _shown = TrayGlyph.Pick(devices, _config.TrayDevices, TrayGlyph.MaxOf(_config.TrayStyle));

@@ -49,6 +49,19 @@ public partial class App : Application
             Dispatcher.Invoke(() => _widget?.Undock());
         };
 
+        Theme.Apply(Resources, _config.Theme);
+        _themeHandler = (_, args) =>
+        {
+            if (args.Category == Microsoft.Win32.UserPreferenceCategory.General)
+                Dispatcher.BeginInvoke(() =>
+                {
+                    if (_exiting) // queued before OnExit unsubscribed: the tray may be disposed
+                        return;
+                    Theme.Apply(Resources, _config.Theme);
+                    _tray?.RefreshTheme();
+                });
+        };
+        Microsoft.Win32.SystemEvents.UserPreferenceChanged += _themeHandler;
         CreateWidget();
 
         _tray = new TrayIcon(_config);
@@ -93,6 +106,8 @@ public partial class App : Application
     }
 
     DeviceTriggers? _triggers;
+
+    Microsoft.Win32.UserPreferenceChangedEventHandler? _themeHandler;
 
     bool _exiting;
 
@@ -332,6 +347,8 @@ public partial class App : Application
         _config.BlinkCritical = result.Blink;
         _config.DualSenseFullReports = result.DualSenseFullReports;
         _config.TrayStyle = result.TrayStyle;
+        _config.Theme = result.Theme;
+        Theme.Apply(Resources, _config.Theme);
         _config.CheckUpdates = result.CheckUpdates;
         if (!result.CheckUpdates)
             _updateTimer.Stop(); // turned off within the first minute: skip the pending start check
@@ -407,6 +424,8 @@ public partial class App : Application
     {
         _exiting = true;
         _updateTimer.Stop();
+        if (_themeHandler is not null)
+            Microsoft.Win32.SystemEvents.UserPreferenceChanged -= _themeHandler;
         if (_singleInstance is not null) // a second instance never loaded the config: saving would write defaults
             SaveConfig(); // retry a save that hit a locked file earlier
         _triggers?.Dispose();

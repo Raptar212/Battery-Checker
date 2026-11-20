@@ -14,7 +14,7 @@ public sealed class DeviceSetting
 }
 
 public sealed record SettingsResult(int Low, int Medium, int Critical, bool Autostart, bool Notifications,
-    bool Blink, bool DualSenseFullReports, TrayStyle TrayStyle, bool CheckUpdates, IReadOnlyList<DeviceSetting> Devices);
+    bool Blink, bool DualSenseFullReports, TrayStyle TrayStyle, ThemeMode Theme, bool CheckUpdates, IReadOnlyList<DeviceSetting> Devices);
 
 /// <summary>The only settings window: thresholds, tray icon, autostart, device names and widget visibility.</summary>
 public partial class SettingsWindow : Window
@@ -22,6 +22,7 @@ public partial class SettingsWindow : Window
     readonly AppConfig _config;
     readonly List<DeviceSetting> _devices;
     readonly System.Windows.Controls.RadioButton[] _styles;
+    readonly System.Windows.Controls.RadioButton[] _themes;
 
     public event Action<SettingsResult>? Saved;
 
@@ -45,6 +46,13 @@ public partial class SettingsWindow : Window
         {
             _styles[i].Content = Text.TrayStyles[i];
             _styles[i].IsChecked = (int)config.TrayStyle == i;
+        }
+        ThemeHeader.Text = Text.ThemeLabel.ToUpperInvariant();
+        _themes = [SystemThemeRadio, DarkThemeRadio, LightThemeRadio]; // order of ThemeMode
+        for (var i = 0; i < _themes.Length; i++)
+        {
+            _themes[i].Content = Text.Themes[i];
+            _themes[i].IsChecked = (int)config.Theme == i;
         }
         AutostartBox.Content = Text.StartWithWindows;
         NotificationsBox.Content = Text.Notifications;
@@ -78,9 +86,10 @@ public partial class SettingsWindow : Window
         (low, medium) = AppConfig.ClampThresholds(low, medium);
         critical = AppConfig.ClampCritical(critical, low);
         var style = (TrayStyle)Math.Max(0, Array.FindIndex(_styles, r => r.IsChecked == true));
+        var theme = (ThemeMode)Math.Max(0, Array.FindIndex(_themes, r => r.IsChecked == true));
         Saved?.Invoke(new SettingsResult(low, medium, critical, AutostartBox.IsChecked == true,
             NotificationsBox.IsChecked == true, BlinkBox.IsChecked == true, DualSenseBox.IsChecked == true,
-            style, UpdatesBox.IsChecked == true, _devices));
+            style, theme, UpdatesBox.IsChecked == true, _devices));
         Close();
     }
 

@@ -6,10 +6,10 @@
         Topmost="True" ShowInTaskbar="False" ShowActivated="False" ResizeMode="NoResize"
         SizeToContent="WidthAndHeight">
   <Border x:Name="Frame" CornerRadius="8" Padding="10,6" MinHeight="30" Cursor="Hand"
-          Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource FrameBrush}" BorderThickness="1.5"
+          Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource FrameBrush}" BorderThickness="1.5"
           MouseLeftButtonDown="OnMouseDown">
     <Grid VerticalAlignment="Center">
-      <TextBlock x:Name="Empty" Text="—" Foreground="{StaticResource MutedBrush}" FontSize="12"
+      <TextBlock x:Name="Empty" Text="—" Foreground="{DynamicResource MutedBrush}" FontSize="12"
                  ToolTip="{x:Static ui:Text.NoDevices}" />
       <StackPanel Orientation="Horizontal">
       <ItemsControl x:Name="Items">
@@ -21,19 +21,19 @@
         <ItemsControl.ItemTemplate>
           <DataTemplate DataType="{x:Type ui:WidgetItem}">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-              <Border Width="1" Height="18" Margin="10,0" Background="{StaticResource MutedBrush}" Opacity="0.6"
+              <Border Width="1" Height="18" Margin="10,0" Background="{DynamicResource MutedBrush}" Opacity="0.6"
                       Visibility="{Binding Separator, Converter={StaticResource BoolToVis}}" />
               <TextBlock Text="{Binding View.Glyph}" FontFamily="{StaticResource IconFont}" FontSize="14"
-                         Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" />
+                         Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
               <ContentControl Content="{Binding View}" ContentTemplate="{StaticResource Battery}" Margin="8,0,6,0" />
-              <TextBlock Text="{Binding View.PercentText}" Foreground="{StaticResource TextBrush}" FontSize="12"
+              <TextBlock Text="{Binding View.PercentText}" Foreground="{DynamicResource TextBrush}" FontSize="12"
                          VerticalAlignment="Center" />
             </StackPanel>
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
       <!-- More connected devices than fit: say so instead of dropping them silently. -->
-      <TextBlock x:Name="More" Foreground="{StaticResource MutedBrush}" FontSize="12" Margin="10,0,0,0"
+      <TextBlock x:Name="More" Foreground="{DynamicResource MutedBrush}" FontSize="12" Margin="10,0,0,0"
                  VerticalAlignment="Center" Visibility="Collapsed" />
       </StackPanel>
     </Grid>
