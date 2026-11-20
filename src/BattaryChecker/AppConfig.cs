@@ -14,6 +14,12 @@ public sealed class AppConfig
 {
     public double? WidgetLeft { get; set; }
     public double? WidgetTop { get; set; }
+
+    /// <summary>
+    /// WidgetLeft/Top are physical pixels. Versions up to 1.0.1 were not DPI-aware and saved DIPs at the
+    /// system DPI; the widget converts such a position once and sets this.
+    /// </summary>
+    public bool PositionInPixels { get; set; }
     public List<string> HiddenDevices { get; set; } = [];
     public int LowThreshold { get; set; } = 20;
     public int MediumThreshold { get; set; } = 50;

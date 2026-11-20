@@ -3,9 +3,9 @@ using System.Runtime.InteropServices;
 namespace BattaryChecker.UI;
 
 /// <summary>
-/// Docks a window into the primary taskbar, left of the tray: shrinks Explorer's task-button
-/// list (MSTaskSwWClass) by the window's width and parks the window in the freed slot, owned by
-/// the taskbar, so the widget sits above the taskbar. Being topmost it does not drop below a
+/// Docks a window into a taskbar, left of the tray: shrinks Explorer's task-button list
+/// (MSTaskSwWClass on the primary taskbar, WorkerW on a secondary one) by the window's width and
+/// parks the window in the freed slot, owned by the taskbar, so the widget sits above the taskbar. Being topmost it does not drop below a
 /// full-screen app with the taskbar; <see cref="FullscreenForeground"/> tells the caller to hide it.
 /// Explorer re-lays out the list on its own (new buttons, tray icons, restart), so the caller
 /// repeats <see cref="Dock"/> on a timer; every call is idempotent.
@@ -18,28 +18,39 @@ public sealed class TaskbarDock
 {
     const int Margin = 4; // px between the widget and the tray / task buttons
 
-    nint _taskbar, _rebar, _taskList;
+    // _parent is the task list's parent, whose client coordinates ResizeList uses: the rebar of the
+    // primary taskbar, the taskbar itself for a secondary one. _clock: a secondary taskbar's clock, else 0.
+    nint _taskbar, _parent, _taskList, _clock;
     nint _ownOwner; // WPF's hidden owner that keeps a ShowInTaskbar=False window off the taskbar and Alt+Tab
 
     public bool Docked { get; private set; }
 
     /// <summary>
     /// Places the window; false if there is no slot: Explorer down, vertical or auto-hide taskbar
-    /// (ponytail: none of them supported, the widget floats instead).
+    /// (ponytail: none of them supported, the widget floats instead). The taskbar is the one
+    /// <see cref="Retarget"/> chose, or, once its handles are gone, the one nearest <paramref name="hint"/>.
     /// </summary>
-    public bool Dock(nint window)
+    public bool Dock(nint window, (int X, int Y) hint)
     {
+        // Docked on the primary taskbar for want of a secondary one (Explorer restarted and brings the
+        // secondary taskbars up later): look for it again now and then.
+        if (Docked && _parent != _taskbar && Environment.TickCount64 - _recheckAt >= 5_000)
+        {
+            _recheckAt = Environment.TickCount64;
+            Retarget(window, hint);
+        }
         // Own rect is in physical pixels, the same space as Explorer's rects.
         // AppBar state is a cross-process message: ask only once the cheap checks pass.
-        if (!Find() || !GetWindowRect(_rebar, out var bar) || !GetWindowRect(_taskList, out var list)
+        if (!Find(hint) || !GetWindowRect(_parent, out var bar) || !GetWindowRect(_taskList, out var list)
             || !GetWindowRect(window, out var own) || AutoHide())
             return false;
         var (width, height) = (own.Right - own.Left, own.Bottom - own.Top);
         if (bar.Bottom - bar.Top > bar.Right - bar.Left)
             return false;
 
+        var right = SlotRight(bar);
         var slot = width + 2 * Margin;
-        var listWidth = bar.Right - slot - list.Left;
+        var listWidth = right - slot - list.Left;
         if (listWidth <= 0)
             return false;
 
@@ -56,7 +67,7 @@ public sealed class TaskbarDock
         if (list.Right - list.Left != listWidth)
             ResizeList(bar, list, listWidth);
         var top = bar.Top + (bar.Bottom - bar.Top - height) / 2;
-        SetWindowPos(window, 0, bar.Right - slot + Margin, top, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+        SetWindowPos(window, 0, right - slot + Margin, top, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
         KeepAboveTaskbar(window);
         Docked = true;
         return true;
@@ -82,10 +93,10 @@ public sealed class TaskbarDock
     /// For a floating widget: the same z-order check without docking (cheap, no cross-process
     /// message). Only the order relative to the taskbar changes, never the position.
     /// </summary>
-    public void KeepAbove(nint window)
+    public void KeepAbove(nint window, (int X, int Y) hint)
     {
         // Only the taskbar itself is needed: Windows 11's has no rebar or task list to dock into.
-        Find();
+        Find(hint);
         if (IsWindow(_taskbar))
             KeepAboveTaskbar(window);
     }
@@ -97,8 +108,33 @@ public sealed class TaskbarDock
             return;
         Docked = false;
         SetWindowLongPtr(window, GWLP_HWNDPARENT, _ownOwner);
-        if (IsWindow(_rebar) && IsWindow(_taskList) && GetWindowRect(_rebar, out var bar) && GetWindowRect(_taskList, out var list))
-            ResizeList(bar, list, bar.Right - list.Left);
+        if (IsWindow(_parent) && IsWindow(_taskList) && GetWindowRect(_parent, out var bar) && GetWindowRect(_taskList, out var list))
+            ResizeList(bar, list, SlotRight(bar) - list.Left);
+    }
+
+    /// <summary>
+    /// Where the task list may end: the rebar's right edge on the primary taskbar (the tray is outside
+    /// the rebar), the clock's left edge on a secondary one.
+    /// </summary>
+    int SlotRight(Rect bar) =>
+        _clock != 0 && IsWindowVisible(_clock) && GetWindowRect(_clock, out var clock) ? clock.Left : bar.Right;
+
+    long _recheckAt;
+
+    /// <summary>
+    /// Picks the taskbar of the monitor nearest <paramref name="hint"/> anew: after a display change, a drag,
+    /// before pinning. Another one than now: a docked window gives the old slot back first (the caller docks
+    /// again); true. The same one: nothing changes, false, so no release and re-dock churns the task buttons.
+    /// </summary>
+    public bool Retarget(nint window, (int X, int Y) hint)
+    {
+        var pick = Pick(hint);
+        _missingAt = 0;
+        if (pick.Taskbar == _taskbar && pick.TaskList == _taskList && IsWindow(_taskList))
+            return false;
+        Release(window);
+        (_taskbar, _parent, _taskList, _clock) = pick;
+        return true;
     }
 
     /// <summary>Async: a hung Explorer must not freeze our UI thread (or exit) waiting for the resize.</summary>
@@ -167,14 +203,47 @@ public sealed class TaskbarDock
         return (taskbar, rebar, rebar == 0 ? 0 : FindWindowEx(rebar, 0, "MSTaskSwWClass", null));
     }
 
-    /// <summary>Handles survive until Explorer restarts; then they are looked up again.</summary>
-    bool Find()
+    /// <summary>
+    /// The secondary taskbar on the monitor nearest <paramref name="hint"/> (Shell_SecondaryTrayWnd with
+    /// WorkerW holding the task list, the clock on its right); the primary taskbar when there is none or it
+    /// lacks the task list.
+    /// </summary>
+    static (nint Taskbar, nint Parent, nint TaskList, nint Clock) Pick((int X, int Y) hint)
     {
-        if (IsWindow(_taskbar) && IsWindow(_rebar) && IsWindow(_taskList))
+        var primary = Lookup();
+        var bars = new List<(nint Handle, (int L, int T, int R, int B) Rect)>();
+        for (var h = FindWindowEx(0, 0, "Shell_SecondaryTrayWnd", null); h != 0; h = FindWindowEx(0, h, "Shell_SecondaryTrayWnd", null))
+            if (GetWindowRect(h, out var r))
+                bars.Add((h, (r.Left, r.Top, r.Right, r.Bottom)));
+        var monitors = ScreenArea.Monitors();
+        var nearest = Placement.Nearest(monitors, hint);
+        var i = bars.Count == 0 || nearest < 0 ? -1 : Placement.PickTaskbar(bars.Select(b => b.Rect).ToList(), monitors[nearest]);
+        if (i < 0)
+            return (primary.Taskbar, primary.Rebar, primary.TaskList, 0);
+        var taskbar = bars[i].Handle;
+        var worker = FindWindowEx(taskbar, 0, "WorkerW", null);
+        if (worker == 0 || FindWindowEx(worker, 0, "MSTaskListWClass", null) == 0)
+            return (primary.Taskbar, primary.Rebar, primary.TaskList, 0);
+        return (taskbar, taskbar, worker, FindWindowEx(taskbar, 0, "ClockButton", null));
+    }
+
+    /// <summary>
+    /// Handles survive until Explorer restarts or the monitor goes; then the taskbar is picked again.
+    /// A taskbar without a task list (Windows 11) is remembered for 10 s, not looked up again every second.
+    /// </summary>
+    bool Find((int X, int Y) hint)
+    {
+        if (IsWindow(_taskbar) && IsWindow(_parent) && IsWindow(_taskList))
             return true;
-        (_taskbar, _rebar, _taskList) = Lookup();
+        var now = Environment.TickCount64;
+        if (_missingAt != 0 && now - _missingAt < 10_000 && IsWindow(_taskbar))
+            return false;
+        (_taskbar, _parent, _taskList, _clock) = Pick(hint);
+        _missingAt = _taskbar != 0 && _taskList == 0 ? now : 0;
         return _taskList != 0;
     }
+
+    long _missingAt;
 
     const int GWLP_HWNDPARENT = -8;
     const uint SWP_NOSIZE = 0x0001, SWP_NOMOVE = 0x0002, SWP_NOZORDER = 0x0004, SWP_NOACTIVATE = 0x0010, SWP_ASYNCWINDOWPOS = 0x4000;
@@ -201,6 +270,10 @@ public sealed class TaskbarDock
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     static extern bool IsWindow(nint hwnd);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static extern bool IsWindowVisible(nint hwnd);
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
