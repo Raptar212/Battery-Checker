@@ -24,9 +24,41 @@ public class LevelsTests
     [Fact]
     public void Ordered_ConnectedFirstThenByName()
     {
-        var names = Levels.Ordered([Reading("b", false), Reading("c", true), Reading("a", true)]).Select(r => r.Name);
+        var names = Levels.Ordered([Reading("b", false), Reading("c", true), Reading("a", true)], []).Select(r => r.Name);
         Assert.Equal(["a", "c", "b"], names);
     }
+
+    [Fact]
+    public void ByUserOrder_KnownFirstThenUnknownByName()
+    {
+        var names = Levels.ByUserOrder([Reading("a", true), Reading("b", false), Reading("c", true), Reading("d", true)],
+            ["id:c", "id:b"]).Select(r => r.Name);
+        Assert.Equal(["c", "b", "a", "d"], names);
+    }
+
+    [Fact]
+    public void Ordered_ConnectedAboveDisconnectedThenUserOrder()
+    {
+        var names = Levels.Ordered([Reading("a", false), Reading("b", true), Reading("c", true), Reading("d", false)],
+            ["id:d", "id:c"]).Select(r => r.Name);
+        Assert.Equal(["c", "b", "d", "a"], names);
+    }
+
+    [Fact]
+    public void MergeOrder_EmptyEditedKeepsPrevious() =>
+        Assert.Equal(["a", "b"], Levels.MergeOrder([], ["a", "b"]));
+
+    [Fact]
+    public void MergeOrder_AbsentDeviceKeepsItsSlotNextToNeighbours()
+    {
+        // previous a b c d; b is not reported now and the user moved d before a.
+        Assert.Equal(["d", "a", "b", "c"], Levels.MergeOrder(["d", "a", "c"], ["a", "b", "c", "d"]));
+        Assert.Equal(["x", "y", "a"], Levels.MergeOrder(["a"], ["x", "y", "a"]));
+    }
+
+    [Fact]
+    public void MergeOrder_NewIdsStayAsGiven() =>
+        Assert.Equal(["n", "a", "m"], Levels.MergeOrder(["n", "a", "m"], ["a"]));
 
     [Fact]
     public void Tooltip_ListsOnlyConnectedWithLevel()

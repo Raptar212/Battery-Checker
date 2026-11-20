@@ -11,11 +11,11 @@ public static class TrayGlyph
 
     /// <summary>
     /// Devices the icon shows: the user's selection (disconnected ones stay, drawn grey), or
-    /// with nothing selected the connected ones with a level, lowest first.
+    /// in the user's order, or with nothing selected the connected ones with a level, lowest first.
     /// </summary>
-    public static List<DeviceView> Pick(IEnumerable<DeviceView> devices, ICollection<string> selected, int max) =>
+    public static List<DeviceView> Pick(IEnumerable<DeviceView> devices, ICollection<string> selected, int max, IList<string> order) =>
         selected.Count > 0
-            ? devices.Where(d => selected.Contains(d.Id)).OrderBy(d => d.Name, StringComparer.CurrentCultureIgnoreCase).Take(max).ToList()
+            ? devices.Where(d => selected.Contains(d.Id)).OrderBy(d => Levels.Rank(d.Id, order)).ThenBy(d => d.Name, StringComparer.CurrentCultureIgnoreCase).Take(max).ToList()
             : devices.Where(d => d.Connected && d.Reading.Percent is not null).OrderBy(d => d.Reading.Percent).Take(max).ToList();
 
     /// <summary>Critical: connected, not charging, at or below the critical level.</summary>

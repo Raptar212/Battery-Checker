@@ -13,14 +13,21 @@ public class TrayGlyphTests
     public void Pick_WithoutSelection_ConnectedWithLevelLowestFirst()
     {
         DeviceView[] all = [View("a", true, 80), View("b", true, 10), View("c", false, 5), View("d", true, null), View("e", true, 40)];
-        Assert.Equal(["b", "e"], TrayGlyph.Pick(all, [], max: 2).Select(d => d.Name));
+        Assert.Equal(["b", "e"], TrayGlyph.Pick(all, [], max: 2, []).Select(d => d.Name));
+    }
+
+    [Fact]
+    public void Pick_WithSelection_FollowsUserOrderThenName()
+    {
+        DeviceView[] all = [View("a", true, 80), View("b", true, 10), View("c", true, 40), View("d", true, 5)];
+        Assert.Equal(["c", "a", "b"], TrayGlyph.Pick(all, ["id:a", "id:b", "id:c"], max: 4, ["id:c", "id:a"]).Select(d => d.Name));
     }
 
     [Fact]
     public void Pick_WithSelection_KeepsDisconnectedSortedByName()
     {
         DeviceView[] all = [View("z", true, 80), View("m", false, 5), View("a", true, 30)];
-        Assert.Equal(["m", "z"], TrayGlyph.Pick(all, ["id:z", "id:m"], max: 4).Select(d => d.Name));
+        Assert.Equal(["m", "z"], TrayGlyph.Pick(all, ["id:z", "id:m"], max: 4, []).Select(d => d.Name));
     }
 
     [Theory]

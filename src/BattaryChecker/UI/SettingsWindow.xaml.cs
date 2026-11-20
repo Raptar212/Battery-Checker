@@ -1,12 +1,32 @@
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Threading;
 using BattaryChecker.Devices;
 
 namespace BattaryChecker.UI;
 
 /// <summary>One editable device row: an optional alias and whether it shows on the widget.</summary>
-public sealed class DeviceSetting
+public sealed class DeviceSetting : INotifyPropertyChanged
 {
+    bool _canUp, _canDown;
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    /// <summary>False for the first row's up and the last row's down button.</summary>
+    public bool CanUp { get => _canUp; set => Set(ref _canUp, value, nameof(CanUp)); }
+    public bool CanDown { get => _canDown; set => Set(ref _canDown, value, nameof(CanDown)); }
+
+    void Set(ref bool field, bool value, string name)
+    {
+        if (field == value)
+            return;
+        field = value;
+        PropertyChanged?.Invoke(this, new(name));
+    }
+
     public required string Id { get; init; }
     public required string OwnName { get; init; }
     public string Name { get; set; } = "";
@@ -14,13 +34,13 @@ public sealed class DeviceSetting
 }
 
 public sealed record SettingsResult(int Low, int Medium, int Critical, bool Autostart, bool Notifications,
-    bool Blink, bool DualSenseFullReports, TrayStyle TrayStyle, ThemeMode Theme, WidgetStyle WidgetStyle, WidgetStyle PinnedWidgetStyle, bool CheckUpdates, IReadOnlyList<DeviceSetting> Devices);
+    bool Blink, bool DualSenseFullReports, TrayStyle TrayStyle, ThemeMode Theme, WidgetStyle WidgetStyle, WidgetStyle PinnedWidgetStyle, bool CheckUpdates, IReadOnlyList<DeviceSetting> Devices, IReadOnlyList<string> DeviceOrder);
 
 /// <summary>The only settings window: thresholds, tray icon, autostart, device names and widget visibility.</summary>
 public partial class SettingsWindow : Window
 {
     readonly AppConfig _config;
-    readonly List<DeviceSetting> _devices;
+    readonly ObservableCollection<DeviceSetting> _devices;
 
     public event Action<SettingsResult>? Saved;
 
@@ -65,13 +85,14 @@ public partial class SettingsWindow : Window
         MediumBox.Text = config.MediumThreshold.ToString();
         CriticalBox.Text = config.CriticalThreshold.ToString();
         AutostartBox.IsChecked = autostart;
-        _devices = Levels.Ordered(devices).Select(d => new DeviceSetting
+        _devices = new(Levels.ByUserOrder(devices, config.DeviceOrder).Select(d => new DeviceSetting
         {
             Id = d.Id,
             OwnName = d.Name,
             Name = config.DeviceNames.GetValueOrDefault(d.Id, ""),
             OnWidget = !config.HiddenDevices.Contains(d.Id),
-        }).ToList();
+        }));
+        RefreshMoves();
         DeviceList.ItemsSource = _devices;
         DevicesButton.Content = Text.DevicesButton(_devices.Count);
         DevicesButton.IsEnabled = _devices.Count > 0;
@@ -91,8 +112,55 @@ public partial class SettingsWindow : Window
         var pinnedStyle = PinnedCombo.SelectedIndex == 1 ? WidgetStyle.Compact : WidgetStyle.Horizontal;
         Saved?.Invoke(new SettingsResult(low, medium, critical, AutostartBox.IsChecked == true,
             NotificationsBox.IsChecked == true, BlinkBox.IsChecked == true, DualSenseBox.IsChecked == true,
-            style, theme, widgetStyle, pinnedStyle, UpdatesBox.IsChecked == true, _devices));
+            style, theme, widgetStyle, pinnedStyle, UpdatesBox.IsChecked == true, _devices, _devices.Select(d => d.Id).ToList()));
         Close();
+    }
+
+    void RefreshMoves()
+    {
+        for (var i = 0; i < _devices.Count; i++)
+            (_devices[i].CanUp, _devices[i].CanDown) = (i > 0, i < _devices.Count - 1);
+    }
+
+    void OnMoveUp(object sender, RoutedEventArgs e) => Move(sender, up: true);
+
+    void OnMoveDown(object sender, RoutedEventArgs e) => Move(sender, up: false);
+
+    /// <summary>Moves a row and keeps the keyboard focus on the same button of the moved row.</summary>
+    void Move(object sender, bool up)
+    {
+        var item = (DeviceSetting)((FrameworkElement)sender).DataContext;
+        var from = _devices.IndexOf(item);
+        var to = from + (up ? -1 : 1);
+        if (to < 0 || to >= _devices.Count)
+            return;
+        _devices.Move(from, to);
+        RefreshMoves();
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (DeviceList.ItemContainerGenerator.ContainerFromItem(item) is not DependencyObject row)
+                return;
+            var target = FindButton(row, up);
+            // At the end of the list the pressed button is now disabled: focus its twin.
+            if (target is not { IsEnabled: true })
+                target = FindButton(row, !up);
+            target?.Focus();
+        }, DispatcherPriority.Loaded);
+    }
+
+    const string UpName = "UpButton", DownName = "DownButton"; // x:Name in SettingsWindow.xaml
+
+    static Button? FindButton(DependencyObject parent, bool up)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is Button b && b.Name == (up ? UpName : DownName))
+                return b;
+            if (FindButton(child, up) is { } found)
+                return found;
+        }
+        return null;
     }
 
     void OnOpenDevices(object sender, RoutedEventArgs e)

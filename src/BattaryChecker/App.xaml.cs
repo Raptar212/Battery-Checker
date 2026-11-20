@@ -289,12 +289,12 @@ public partial class App : Application
     {
         _readings = readings; // own names: the settings window shows them as placeholders
         var named = readings.Select(r => r with { Name = _config.NameOf(r.Id, r.Name) }).ToList();
-        List<DeviceView> Views(ICollection<string> inTray) => Levels.Ordered(named)
+        List<DeviceView> Views(ICollection<string> inTray) => Levels.Ordered(named, _config.DeviceOrder)
             .Select(r => new DeviceView(r, _config.HiddenDevices.Contains(r.Id), _config.LowThreshold,
                 _config.MediumThreshold, inTray.Contains(r.Id)))
             .ToList();
         // The pin lights up for what the tray icon really shows, implicit choice included.
-        _trayShown = TrayGlyph.Pick(Views([]), _config.TrayDevices, TrayGlyph.MaxOf(_config.TrayStyle))
+        _trayShown = TrayGlyph.Pick(Views([]), _config.TrayDevices, TrayGlyph.MaxOf(_config.TrayStyle), _config.DeviceOrder)
             .Select(d => d.Id).ToHashSet();
         var views = Views(_trayShown);
         _widget?.Update(views);
@@ -353,6 +353,7 @@ public partial class App : Application
         _config.PinnedWidgetStyle = result.PinnedWidgetStyle;
         _widget?.ApplyStyle();
         _config.CheckUpdates = result.CheckUpdates;
+        _config.DeviceOrder = Levels.MergeOrder(result.DeviceOrder, _config.DeviceOrder);
         if (!result.CheckUpdates)
             _updateTimer.Stop(); // turned off within the first minute: skip the pending start check
         foreach (var device in result.Devices)
